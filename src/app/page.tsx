@@ -1,48 +1,48 @@
 "use client";
 
 import { useEffect } from "react";
-import { useOSSettings } from "@/store/os-settings";
-import { BootScreen } from "@/components/os/BootScreen";
-import { Desktop } from "@/components/os/Desktop";
-import { TopBar } from "@/components/os/TopBar";
-import { Dock } from "@/components/os/Dock";
-import { WindowManager } from "@/components/os/WindowManager";
+import { useNav } from "@/store/nav";
+import { useSettings } from "@/store/settings";
+import { ToolBelt } from "@/components/ToolBelt";
+import { ThemeApplier } from "@/components/ThemeApplier";
+import { HomeView } from "@/components/views/HomeView";
+import { GamesView } from "@/components/views/GamesView";
+import { MusicView } from "@/components/views/MusicView";
+import { BrowserView } from "@/components/views/BrowserView";
+import { AnimeView } from "@/components/views/AnimeView";
+import { SetupView } from "@/components/views/SetupView";
 import { PlayerAudio } from "@/components/player/PlayerAudio";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { ACCENTS } from "@/store/os-settings";
 
 export default function Page() {
-  const { booted, accent, reducedMotion } = useOSSettings();
-  useKeyboardShortcuts();
+  const view = useNav((s) => s.view);
+  const reducedMotion = false; // Could add to settings later
 
-  // Apply the accent color as a CSS variable on the root.
-  useEffect(() => {
-    const a = ACCENTS.find((x) => x.id === accent) ?? ACCENTS[0];
-    // Override the theme's primary color with the OS accent selection.
-    document.documentElement.style.setProperty("--primary", a.color);
-    document.documentElement.style.setProperty("--ring", a.color);
-    document.documentElement.style.setProperty("--sidebar-primary", a.color);
-    document.documentElement.style.setProperty("--sidebar-ring", a.color);
-    document.documentElement.setAttribute("data-accent", accent);
-  }, [accent]);
-
-  // Apply reduced-motion class.
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reducedMotion);
   }, [reducedMotion]);
 
-  if (!booted) return <BootScreen />;
+  // Scroll to top on view change.
+  useEffect(() => {
+    const el = document.getElementById("main-scroll");
+    if (el) el.scrollTo({ top: 0 });
+  }, [view]);
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
-      <Desktop />
-      <TopBar />
-      <WindowManager />
-      <Dock />
-
-      {/* The music player's audio engine lives at the OS root so audio
-          keeps playing even when the music window is closed. */}
+    <>
+      <ThemeApplier />
+      <div className="flex h-dvh w-full overflow-hidden" style={{ background: "var(--bg)" }}>
+        <ToolBelt />
+        <main id="main-scroll" className="flex-1 overflow-y-auto" style={{ marginLeft: "4rem" }}>
+          {view === "home" && <HomeView />}
+          {view === "games" && <GamesView />}
+          {view === "music" && <MusicView />}
+          {view === "browser" && <BrowserView />}
+          {view === "anime" && <AnimeView />}
+          {view === "setup" && <SetupView />}
+        </main>
+      </div>
+      {/* Music player audio engine — mounted at root so audio persists across views */}
       <PlayerAudio />
-    </div>
+    </>
   );
 }

@@ -1,152 +1,106 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Play } from "lucide-react";
-import { fetchHome } from "@/lib/ytm/home";
-import { DEMO_HOME_SECTIONS } from "@/lib/ytm/demo";
-import type { HomeSection, YTMTrack, YTMAlbum, YTMArtist, YTMPlaylist } from "@/lib/ytm/types";
-import { usePlayer } from "@/store/player";
+import { Gamepad2, Music, Globe, Tv, ArrowRight, Github, BookOpen } from "lucide-react";
 import { useNav } from "@/store/nav";
-import { artistsLabel } from "@/lib/format";
+import { useSettings } from "@/store/settings";
 
 export function HomeView() {
-  // Start with demo content immediately so the page is never blank, then
-  // try to replace it with the live feed in the background.
-  const [sections, setSections] = useState<HomeSection[]>(DEMO_HOME_SECTIONS);
-  const [usedFallback, setUsedFallback] = useState(true);
+  const setView = useNav((s) => s.setView);
+  const setupDone = useSettings((s) => s.setupDone);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchHome()
-      .then((s) => {
-        if (!cancelled && s.length > 0) {
-          setSections(s);
-          setUsedFallback(false);
-        }
-      })
-      .catch(() => {
-        // Keep the demo content.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const cards = [
+    {
+      view: "games" as const,
+      title: "Games",
+      desc: "Arcade, puzzle, strategy & more — all playable in your browser.",
+      icon: Gamepad2,
+      emoji: "🎮",
+    },
+    {
+      view: "music" as const,
+      title: "Music",
+      desc: "Search and stream from YouTube Music. Build your library.",
+      icon: Music,
+      emoji: "🎧",
+    },
+    {
+      view: "browser" as const,
+      title: "Browser",
+      desc: "A full web browser with proxy support. Go anywhere.",
+      icon: Globe,
+      emoji: "🌐",
+    },
+    {
+      view: "anime" as const,
+      title: "Anime",
+      desc: "Stream anime episodes. Configure your source in settings.",
+      icon: Tv,
+      emoji: "📺",
+    },
+  ];
 
   return (
-    <div className="space-y-10 p-6 pb-32 fade-up lg:pb-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Good evening</h1>
-        <p className="text-sm text-muted-foreground">
-          {usedFallback
-            ? "Demo tracks — live feed unavailable in this environment. Search and playback work when Piped/Invidious instances are reachable."
-            : "Trending music, fresh picks and what's hot right now."}
+    <div className="fade-in p-6 lg:p-10">
+      {/* Hero */}
+      <div className="mb-10">
+        <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">abroad</h1>
+        <p className="mt-2 max-w-xl text-sm" style={{ color: "var(--text-muted)" }}>
+          A static web proxy hub. Games, music, browser, and anime — all in one place.
+          No backend, no account, no corporate slop.
         </p>
-      </header>
-
-      {sections.map((section, i) => (
-        <Section key={i} section={section} />
-      ))}
-    </div>
-  );
-}
-
-function Section({ section }: { section: HomeSection }) {
-  if (!section.items.length) return null;
-  // Collect all tracks in this section so clicking any one plays the whole list.
-  const sectionTracks = section.items.filter(
-    (i): i is YTMTrack => !!(i as any).videoId,
-  );
-  return (
-    <section>
-      <h2 className="mb-4 text-xl font-semibold tracking-tight">{section.title}</h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-        {section.items.slice(0, 12).map((item, i) => (
-          <Card key={i} item={item} sectionTracks={sectionTracks} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Card({
-  item,
-  sectionTracks = [],
-}: {
-  item: YTMTrack | YTMAlbum | YTMArtist | YTMPlaylist;
-  sectionTracks?: YTMTrack[];
-}) {
-  const playTracks = usePlayer((s) => s.playTracks);
-  const go = useNav((s) => s.go);
-
-  const isTrack = (x: any): x is YTMTrack => !!x.videoId;
-  const isArtist = (x: any): x is YTMArtist => !!x.artistId && !x.videoId && !x.albumId;
-  const isAlbum = (x: any): x is YTMAlbum => !!x.albumId && !x.videoId && !x.artistId;
-  const isPlaylist = (x: any): x is YTMPlaylist => !!x.playlistId && !x.videoId && !x.artistId && !x.albumId;
-
-  let title = "";
-  let subtitle = "";
-  let thumbnail = "";
-  let onClick = () => {};
-  let onPlay: (() => void) | undefined;
-
-  if (isTrack(item)) {
-    title = item.title;
-    subtitle = artistsLabel(item.artists);
-    thumbnail = item.thumbnail;
-    // Play from this track's position within the section's track list.
-    const trackIndex = sectionTracks.findIndex((t) => t.videoId === item.videoId);
-    const list = trackIndex >= 0 ? sectionTracks : [item];
-    const startIndex = trackIndex >= 0 ? trackIndex : 0;
-    onClick = () => playTracks(list, startIndex);
-    onPlay = () => playTracks(list, startIndex);
-  } else if (isAlbum(item)) {
-    title = item.title;
-    subtitle = item.year ?? "Album";
-    thumbnail = item.thumbnail ?? "";
-    onClick = () => go({ name: "album", albumId: item.albumId });
-  } else if (isArtist(item)) {
-    title = item.name;
-    subtitle = item.subscribers ?? "Artist";
-    thumbnail = item.thumbnail ?? "";
-    onClick = () => go({ name: "artist", artistId: item.artistId! });
-  } else if (isPlaylist(item)) {
-    title = item.title;
-    subtitle = item.subtitle ?? "Playlist";
-    thumbnail = item.thumbnail ?? "";
-  }
-
-  const isCircle = isArtist(item);
-
-  return (
-    <button
-      onClick={onClick}
-      className="group relative flex flex-col gap-3 rounded-xl p-3 text-left transition-colors hover:bg-white/[0.05]"
-    >
-      <div className="relative aspect-square w-full overflow-hidden bg-white/5 shadow-lg">
-        {thumbnail ? (
-          <img
-            src={thumbnail}
-            alt=""
-            className={isCircle ? "h-full w-full rounded-full object-cover" : "h-full w-full object-cover"}
-            loading="lazy"
-          />
-        ) : null}
-        {onPlay && (
-          <div
-            className="absolute bottom-2 right-2 flex h-11 w-11 translate-y-2 items-center justify-center rounded-full bg-primary opacity-0 shadow-xl transition-all hover:scale-105 group-hover:translate-y-0 group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlay?.();
-            }}
+        {!setupDone && (
+          <button
+            onClick={() => setView("setup")}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors hover:surface2"
+            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
           >
-            <Play className="h-5 w-5 translate-x-[1px] fill-primary-foreground text-primary-foreground" />
-          </div>
+            <BookOpen className="h-4 w-4" /> Get started
+          </button>
         )}
       </div>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-medium">{title}</div>
-        <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
+
+      {/* App cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <button
+              key={c.view}
+              onClick={() => setView(c.view)}
+              className="group surface relative overflow-hidden rounded-2xl border p-5 text-left transition-all hover:scale-[1.02]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-3xl">{c.emoji}</span>
+                <Icon className="h-5 w-5 opacity-30 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }} />
+              </div>
+              <h3 className="mb-1 text-lg font-semibold">{c.title}</h3>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                {c.desc}
+              </p>
+              <div className="mt-3 flex items-center gap-1 text-xs" style={{ color: "var(--accent)" }}>
+                Open <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+              </div>
+            </button>
+          );
+        })}
       </div>
-    </button>
+
+      {/* Footer */}
+      <div className="mt-12 flex items-center gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
+        <span>v1.0</span>
+        <span>·</span>
+        <span>Static · Cloudflare-ready</span>
+        <span>·</span>
+        <a
+          href="https://github.com"
+          target="_blank"
+          rel="noopener"
+          className="flex items-center gap-1 transition-colors hover:text-current"
+        >
+          <Github className="h-3 w-3" /> Source
+        </a>
+      </div>
+    </div>
   );
 }
