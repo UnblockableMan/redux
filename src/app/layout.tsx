@@ -29,6 +29,10 @@ const headScripts = `
   import * as BareMux from "https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux/dist/index.mjs";
   window.BareMux = BareMux;
 </script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://megaplay.buzz" crossorigin />
+<link rel="preconnect" href="https://fetch.nexabloom.top" crossorigin />
+<link rel="preconnect" href="https://graphql.anilist.co" crossorigin />
 `;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

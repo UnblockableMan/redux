@@ -256,14 +256,18 @@ function StartPage({ onNavigate }: { onNavigate: (url: string) => void }) {
     brave: "Brave",
   };
   const shortcuts = [
-    { name: "Google", url: "https://google.com", emoji: "🔍" },
-    { name: "YouTube", url: "https://youtube.com", emoji: "📺" },
-    { name: "Reddit", url: "https://reddit.com", emoji: "👽" },
-    { name: "Wikipedia", url: "https://wikipedia.org", emoji: "📚" },
-    { name: "GitHub", url: "https://github.com", emoji: "🐙" },
-    { name: "Twitter", url: "https://twitter.com", emoji: "🐦" },
-    { name: "Discord", url: "https://discord.com", emoji: "💬" },
-    { name: "Twitch", url: "https://twitch.tv", emoji: "🎮" },
+    { name: "Google", url: "https://google.com", icon: "https://www.google.com/favicon.ico" },
+    { name: "YouTube", url: "https://youtube.com", icon: "https://www.youtube.com/s/desktop/favicon.ico" },
+    { name: "Reddit", url: "https://reddit.com", icon: "https://www.redditstatic.com/favicon.ico" },
+    { name: "Wikipedia", url: "https://wikipedia.org", icon: "https://en.wikipedia.org/static/favicon/wikipedia.ico" },
+    { name: "GitHub", url: "https://github.com", icon: "https://github.githubassets.com/favicons/favicon.svg" },
+    { name: "X (Twitter)", url: "https://twitter.com", icon: "https://abs.twimg.com/favicons/twitter.2.ico" },
+    { name: "Discord", url: "https://discord.com", icon: "https://discord.com/assets/favicon.ico" },
+    { name: "Twitch", url: "https://twitch.tv", icon: "https://assets.help.twitch.tv/article/img/favicon.ico" },
+    { name: "Spotify", url: "https://open.spotify.com", icon: "https://open.spotify.com/favicon.ico" },
+    { name: "Netflix", url: "https://netflix.com", icon: "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2023.ico" },
+    { name: "Amazon", url: "https://amazon.com", icon: "https://www.amazon.com/favicon.ico" },
+    { name: "ChatGPT", url: "https://chat.openai.com", icon: "https://chat.openai.com/favicon.ico" },
   ];
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,11 +292,11 @@ function StartPage({ onNavigate }: { onNavigate: (url: string) => void }) {
           spellCheck={false}
         />
       </form>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
         {shortcuts.map((s) => (
-          <button key={s.name} onClick={() => onNavigate(s.url)} className="flex flex-col items-center gap-2 rounded-xl border p-4 transition-all hover:scale-105" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            <span className="text-2xl">{s.emoji}</span>
-            <span className="text-xs">{s.name}</span>
+          <button key={s.name} onClick={() => onNavigate(s.url)} className="flex flex-col items-center gap-2 rounded-xl border p-3 transition-all hover:scale-105 sm:p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }} title={s.name}>
+            <img src={s.icon} alt="" className="h-7 w-7 rounded-sm" referrerPolicy="no-referrer" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+            <span className="truncate text-xs">{s.name}</span>
           </button>
         ))}
       </div>

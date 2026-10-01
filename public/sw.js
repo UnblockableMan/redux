@@ -56,8 +56,11 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 const FALLBACK_WISP_SERVERS = [
     "wss://wisp.mercurywork.shop:443",
     "wss://wisps.proxiflux.dev:443",
-    "wss://wisp.mercurywork.shop:443",
     "wss://comet.librey.tech:443",
+    "wss://wisp.loclin-cf.lol:443",
+    "wss://wisp-proxy.dragonuno.vercel.app:443",
+    "wss://wispg0.gettoast.in:443",
+    "wss://anyspeed.mercurywork.shop:443",
 ];
 
 let wispConfig = { wispurl: null, autoswitch: true };

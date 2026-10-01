@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
-import { Search, Play, ArrowLeft, Loader2, List, SkipForward, ChevronDown, Globe } from "lucide-react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { Search, Play, ArrowLeft, Loader2, List, SkipForward, ChevronDown, Globe, Clapperboard, History } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/store/settings";
+import { NativeAnimePlayer } from "./NativeAnimePlayer";
 
 // AniKoto API — same endpoint Lyra uses.
 const ANIKOTO_API = "https://anikotoapi.site";
@@ -313,6 +314,55 @@ async function fetchSeries(anikotoId: number): Promise<SeriesData | null> {
   };
 }
 
+// ----- Continue Watching (localStorage progress tracking) -----
+
+function fmtTimeShort(s: number): string {
+  if (!Number.isFinite(s) || s < 0) return "0:00";
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60).toString().padStart(2, "0");
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h}:${(m % 60).toString().padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
+interface ContinueEntry {
+  anikotoId: number;
+  title: string;
+  poster: string;
+  episodeIndex: number;
+  episodeNumber: number;
+  currentTime: number;
+  duration: number;
+  updatedAt: number;
+}
+
+const CONTINUE_KEY = "redux-anime-progress";
+
+function loadContinueWatching(): ContinueEntry[] {
+  try {
+    const raw = localStorage.getItem(CONTINUE_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as ContinueEntry[];
+    return arr.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12);
+  } catch { return []; }
+}
+
+function saveContinueWatching(entry: ContinueEntry) {
+  try {
+    const list = loadContinueWatching();
+    const filtered = list.filter((e) => e.anikotoId !== entry.anikotoId);
+    filtered.unshift(entry);
+    localStorage.setItem(CONTINUE_KEY, JSON.stringify(filtered.slice(0, 12)));
+  } catch {}
+}
+
+function clearContinueWatching(anikotoId: number) {
+  try {
+    const list = loadContinueWatching();
+    const filtered = list.filter((e) => e.anikotoId !== anikotoId);
+    localStorage.setItem(CONTINUE_KEY, JSON.stringify(filtered));
+  } catch {}
+}
+
 // ----- UI -----
 
 export function AnimeView() {
@@ -328,7 +378,17 @@ export function AnimeView() {
   const [currentEpIndex, setCurrentEpIndex] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"browse" | "series" | "watch">("browse");
+  // Player mode: 'native' = HLS.js player with real skip-intro / quality / subs.
+  // 'iframe' = legacy iframe player (fallback when native fails or user opts out).
+  const [playerMode, setPlayerMode] = useState<"native" | "iframe">("native");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Continue Watching — pulled from localStorage progress entries.
+  const [continueWatching, setContinueWatching] = useState<ContinueEntry[]>([]);
+  const refreshContinueWatching = useCallback(() => {
+    setContinueWatching(loadContinueWatching());
+  }, []);
+  useEffect(() => { refreshContinueWatching(); }, [refreshContinueWatching]);
 
   useEffect(() => {
     loadInitialCatalog()
@@ -394,17 +454,92 @@ export function AnimeView() {
     } catch {}
   };
 
+  // Periodically record playback progress (called from the native player's
+  // timeupdate via the window event bridge).
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as {
+        anikotoId: number;
+        title: string;
+        poster: string;
+        episodeIndex: number;
+        episodeNumber: number;
+        currentTime: number;
+        duration: number;
+      };
+      if (!detail || !series) return;
+      saveContinueWatching({
+        anikotoId: detail.anikotoId,
+        title: detail.title,
+        poster: detail.poster,
+        episodeIndex: detail.episodeIndex,
+        episodeNumber: detail.episodeNumber,
+        currentTime: detail.currentTime,
+        duration: detail.duration,
+        updatedAt: Date.now(),
+      });
+    };
+    window.addEventListener("redux-anime-progress", handler);
+    return () => window.removeEventListener("redux-anime-progress", handler);
+  }, [series]);
+
   if (view === "watch" && series) {
+    const anikotoId = parseInt(series.id, 10) || seriesCatalogEntry?.anikotoId || 0;
+    const poster = series.image || seriesCatalogEntry?.poster || "";
+    if (playerMode === "native") {
+      return (
+        <>
+          <NativeAnimePlayer
+            series={series}
+            episodeIndex={currentEpIndex}
+            onBack={() => setView("series")}
+            onSelectEpisode={(i) => playEpisode(i)}
+            onNext={() => playEpisode(currentEpIndex + 1)}
+            hasNext={!!autoPlayNext && currentEpIndex < series.episodes.length - 1}
+            preferDub={preferDub}
+          />
+          {/* Hidden progress bridge: NativeAnimePlayer calls window dispatchEvent
+              with 'redux-anime-progress'; we listen in the parent effect above. */}
+          <ProgressBridge
+            anikotoId={anikotoId}
+            title={series.title}
+            poster={poster}
+            episodeIndex={currentEpIndex}
+            episodeNumber={series.episodes[currentEpIndex]?.number || currentEpIndex + 1}
+            getVideo={() => document.querySelector<HTMLVideoElement>("video")}
+          />
+          {/* Floating "use iframe" toggle in the corner */}
+          <button
+            onClick={() => setPlayerMode("iframe")}
+            className="fixed bottom-2 right-2 z-40 rounded-full border bg-black/60 px-3 py-1 text-[10px] opacity-50 hover:opacity-100"
+            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+            title="If the native player isn't working, fall back to the iframe"
+          >
+            iframe fallback
+          </button>
+        </>
+      );
+    }
     return (
-      <AnimePlayer
-        series={series}
-        episodeIndex={currentEpIndex}
-        onBack={() => setView("series")}
-        onSelectEpisode={(i) => playEpisode(i)}
-        onNext={() => playEpisode(currentEpIndex + 1)}
-        hasNext={!!autoPlayNext && currentEpIndex < series.episodes.length - 1}
-        preferDub={preferDub}
-      />
+      <>
+        <AnimePlayer
+          series={series}
+          episodeIndex={currentEpIndex}
+          onBack={() => setView("series")}
+          onSelectEpisode={(i) => playEpisode(i)}
+          onNext={() => playEpisode(currentEpIndex + 1)}
+          hasNext={!!autoPlayNext && currentEpIndex < series.episodes.length - 1}
+          preferDub={preferDub}
+        />
+        <button
+          onClick={() => setPlayerMode("native")}
+          className="fixed bottom-2 right-2 z-40 rounded-full border bg-black/60 px-3 py-1 text-[10px] opacity-50 hover:opacity-100"
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+          title="Switch back to the native HLS.js player with skip-intro / quality / subs"
+        >
+          native player
+        </button>
+      </>
     );
   }
 
@@ -444,6 +579,72 @@ export function AnimeView() {
         <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--text-muted)" }} /></div>
       ) : (
         <>
+          {/* Continue Watching — recent playback progress, click to resume */}
+          {!searchQuery && continueWatching.length > 0 && (
+            <section className="mb-8">
+              <div className="mb-3 flex items-center gap-2">
+                <History className="h-4 w-4" style={{ color: "var(--accent)" }} />
+                <h2 className="text-lg font-semibold">Continue Watching</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                {continueWatching.map((cw) => {
+                  const pct = cw.duration > 0 ? Math.min(100, (cw.currentTime / cw.duration) * 100) : 0;
+                  return (
+                    <button
+                      key={cw.anikotoId}
+                      onClick={async () => {
+                        // Open the series, then jump to the saved episode.
+                        setLoading(true);
+                        try {
+                          const s = await fetchSeries(cw.anikotoId);
+                          if (!s || !s.episodes?.length) {
+                            toast.error("Series no longer available");
+                            setLoading(false);
+                            return;
+                          }
+                          const idx = Math.min(cw.episodeIndex, s.episodes.length - 1);
+                          setSeries(s);
+                          setSeriesCatalogEntry({ id: `anikoto:${cw.anikotoId}`, anikotoId: cw.anikotoId, title: cw.title, poster: cw.poster });
+                          setCurrentEpIndex(idx);
+                          setView("watch");
+                          unlockAchievement("first-anime");
+                        } catch (err: any) {
+                          toast.error("Failed to load series", { description: err?.message });
+                        }
+                        setLoading(false);
+                      }}
+                      className="group surface relative flex flex-col gap-2 overflow-hidden rounded-xl border p-2 text-left transition-all hover:scale-[1.02]"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <div className="relative aspect-video w-full overflow-hidden rounded-lg" style={{ background: "var(--surface2)" }}>
+                        {cw.poster && <img src={cw.poster} alt="" className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Play className="h-8 w-8 fill-current" style={{ color: "var(--accent)" }} />
+                        </div>
+                        <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between text-[10px]">
+                          <span className="rounded bg-black/70 px-1.5 py-0.5">EP {cw.episodeNumber}</span>
+                          <span className="rounded bg-black/70 px-1.5 py-0.5">{fmtTimeShort(cw.currentTime)} / {fmtTimeShort(cw.duration)}</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
+                          <div className="h-full" style={{ width: `${pct}%`, background: "var(--accent)" }} />
+                        </div>
+                      </div>
+                      <div className="truncate text-xs font-medium">{cw.title}</div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); clearContinueWatching(cw.anikotoId); refreshContinueWatching(); }}
+                        className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] opacity-0 transition-opacity group-hover:opacity-100"
+                        style={{ color: "#ef4444" }}
+                      >
+                        ×
+                      </button>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           <h2 className="mb-3 text-lg font-semibold">
             {searchQuery ? `Results for "${searchQuery}"` : "Trending & Recently Added"}
           </h2>
@@ -725,4 +926,42 @@ function AnimePlayer({ series, episodeIndex, onBack, onSelectEpisode, onNext, ha
       </div>
     </div>
   );
+}
+
+
+// ProgressBridge — watches the <video> element and dispatches a
+// 'redux-anime-progress' CustomEvent every ~10s so the parent AnimeView
+// can persist playback progress to localStorage. Lives outside the
+// NativeAnimePlayer so the event listener in AnimeView always sees it.
+function ProgressBridge({
+  anikotoId,
+  title,
+  poster,
+  episodeIndex,
+  episodeNumber,
+  getVideo,
+}: {
+  anikotoId: number;
+  title: string;
+  poster: string;
+  episodeIndex: number;
+  episodeNumber: number;
+  getVideo: () => HTMLVideoElement | null;
+}) {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const v = getVideo();
+      if (!v) return;
+      const duration = v.duration || 0;
+      const currentTime = v.currentTime || 0;
+      if (!Number.isFinite(duration) || duration === 0) return;
+      // Don't log progress for the first 5s or after 99% (episode over).
+      if (currentTime < 5 || currentTime > duration * 0.99) return;
+      window.dispatchEvent(new CustomEvent("redux-anime-progress", {
+        detail: { anikotoId, title, poster, episodeIndex, episodeNumber, currentTime, duration },
+      }));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [anikotoId, title, poster, episodeIndex, episodeNumber, getVideo]);
+  return null;
 }
