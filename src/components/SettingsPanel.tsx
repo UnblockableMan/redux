@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Palette, Server, Eye, Info, Layout, Wallpaper, Puzzle, Trash2, ClipboardList, Film, Ghost, Wifi, RotateCcw, Database, Search, Shield, Gamepad2, Keyboard, Globe } from "lucide-react";
+import { X, Palette, Server, Eye, Info, Layout, Wallpaper, Puzzle, Trash2, ClipboardList, Film, Ghost, Wifi, RotateCcw, Database, Search, Shield, Gamepad2, Keyboard, Globe, AlertTriangle } from "lucide-react";
 import { useSettings, THEMES, WALLPAPERS, VIDEO_WALLPAPERS, type ThemeId, type WallpaperId, type VideoWallpaperId, type ToolbarPos } from "@/store/settings";
 import { useNav } from "@/store/nav";
 import { withBase } from "@/lib/base";
@@ -77,11 +77,12 @@ const WISP_PRESETS: { label: string; url: string }[] = [
   { label: "WispServer.dev", url: "wss://wispserver.dev/wisp/" },
 ];
 
-type Tab = "appearance" | "playback" | "privacy" | "browser" | "games" | "proxy" | "cloak" | "extensions" | "shortcuts" | "more";
+type Tab = "appearance" | "playback" | "privacy" | "panic" | "browser" | "games" | "proxy" | "cloak" | "extensions" | "shortcuts" | "more";
 
 const TABS: { id: Tab; label: string; icon: typeof Palette }[] = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "playback", label: "Playback", icon: Film },
+  { id: "panic", label: "Panic", icon: AlertTriangle },
   { id: "privacy", label: "Privacy", icon: Shield },
   { id: "browser", label: "Browser", icon: Globe },
   { id: "games", label: "Games", icon: Gamepad2 },
@@ -296,6 +297,63 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
             </>
           )}
 
+          {/* Panic — stealth disguise overlay */}
+          {tab === "panic" && (
+            <>
+              <Section icon={<AlertTriangle className="h-4 w-4" />} title="Panic Mode">
+                <p className="mb-3 text-xs" style={{ color: "var(--text-muted)" }}>
+                  Instantly disguises redux as a fake Google Docs / Classroom / Wikipedia page so
+                  teachers walking by don't notice. Toggle it three ways:
+                </p>
+                <ul className="mb-3 ml-4 list-disc text-xs" style={{ color: "var(--text-muted)" }}>
+                  <li>Press <kbd className="rounded px-1 font-mono" style={{ background: "var(--surface2)" }}>Esc</kbd> three times within 700ms</li>
+                  <li>Click the red ⚠ button on the toolbar</li>
+                  <li>Click the button below</li>
+                </ul>
+                <button
+                  onClick={() => s.setPanicMode(!s.panicMode)}
+                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all hover:scale-[1.01]"
+                  style={{
+                    borderColor: s.panicMode ? "#22c55e" : "#ef4444",
+                    background: s.panicMode ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                    color: s.panicMode ? "#22c55e" : "#ef4444",
+                  }}
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  {s.panicMode ? "EXIT PANIC MODE (back to redux)" : "ACTIVATE PANIC MODE"}
+                </button>
+                <ToggleRow
+                  label="Make panic sticky"
+                  desc="When on, panic mode stays activated until you press Esc or click exit. When off, any navigation attempt exits panic."
+                  checked={s.panicMode}
+                  onChange={(v) => s.setPanicMode(v)}
+                />
+              </Section>
+              <Section icon={<Eye className="h-4 w-4" />} title="Disguise">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Which fake page to show when panic mode is active.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: "google-docs", label: "Google Docs", icon: "📄" },
+                    { id: "classroom", label: "Google Classroom", icon: "🎓" },
+                    { id: "khan-academy", label: "Khan Academy", icon: "📐" },
+                    { id: "wikipedia", label: "Wikipedia", icon: "📚" },
+                    { id: "google", label: "Google search", icon: "🔍" },
+                  ] as const).map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => s.setPanicDisguise(d.id)}
+                      className={cn("flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all", s.panicDisguise === d.id ? "scale-105" : "opacity-60 hover:opacity-100")}
+                      style={{ borderColor: s.panicDisguise === d.id ? "var(--accent)" : "var(--border)" }}
+                    >
+                      <span className="text-base">{d.icon}</span>
+                      <span>{d.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            </>
+          )}
+
           {/* Privacy */}
           {tab === "privacy" && (
             <>
@@ -457,6 +515,32 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                     </button>
                   ))}
                 </div>
+              </Section>
+              <Section icon={<Server className="h-4 w-4" />} title="Alternative Engine (TongSherbet)">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                  TongSherbet/storage is an alternative proxy engine (separate from Scramjet) with its
+                  own Jet / Pox / Curl transports. Loading it as an overlay gives you a fallback proxy
+                  if every wisp server in the Scramjet chain is blocked on your network.
+                </p>
+                <button
+                  onClick={() => {
+                    // Open the cleverlearning-styled page in a new tab — it
+                    // loads the TongSherbet loader.js from the TongSherbet/storage
+                    // GitHub repo, which sets up its own SW + transports.
+                    // We don't embed it inline because TongSherbet is a separate
+                    // proxy system (different SW scope, different transports).
+                    window.open("https://s3.amazonaws.com/cleverlearning/index.html", "_blank", "noopener");
+                    toast.info("Opened TongSherbet", { description: "Loads in a new tab — separate SW + transports." });
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:surface2"
+                  style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+                >
+                  Launch TongSherbet (new tab)
+                </button>
+                <p className="mt-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
+                  Note: redux doesn't bundle TongSherbet's obfuscated loader for security/copyright
+                  reasons — clicking above opens their official hosted page.
+                </p>
               </Section>
             </>
           )}

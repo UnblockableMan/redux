@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Home, Puzzle, ClipboardList } from "lucide-react";
+import { Settings, Home, Puzzle, ClipboardList, AlertTriangle } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
 import { withBase } from "@/lib/base";
@@ -113,6 +113,18 @@ export function ToolBar() {
           {/* Settings */}
           <button onClick={() => setSettingsOpen(true)} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-colors hover:surface2" title="Settings" aria-label="Settings">
             <Settings className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+          </button>
+
+          {/* Panic — instantly disguises the tab as Google Docs (or other
+              selected disguise) so teachers walking by don't notice. */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("redux-panic-toggle"))}
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-colors hover:surface2"
+            title="PANIC — disguise as Google Docs (Esc×3 also toggles)"
+            aria-label="Panic"
+            style={{ color: "#ef4444" }}
+          >
+            <AlertTriangle className="h-5 w-5" />
           </button>
         </div>
       </div>

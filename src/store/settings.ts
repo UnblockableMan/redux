@@ -59,6 +59,10 @@ interface Settings {
   gamesSource: "all" | "ubg" | "cartel";
   // Keyboard shortcuts
   enableKeyboardShortcuts: boolean;
+  // Panic mode (stealth disguise) — when on, overlays a fake "Google Docs"
+  // / Classroom / Khan Academy page so teachers walking by don't notice.
+  panicMode: boolean;
+  panicDisguise: "google-docs" | "classroom" | "khan-academy" | "wikipedia" | "google";
   setTheme: (t: ThemeId) => void;
   setWallpaper: (w: WallpaperId) => void;
   setVideoWallpaper: (v: VideoWallpaperId) => void;
@@ -84,6 +88,8 @@ interface Settings {
   setSaveHistory: (v: boolean) => void;
   setGamesSource: (g: "all" | "ubg" | "cartel") => void;
   setEnableKeyboardShortcuts: (v: boolean) => void;
+  setPanicMode: (v: boolean) => void;
+  setPanicDisguise: (d: "google-docs" | "classroom" | "khan-academy" | "wikipedia" | "google") => void;
 }
 
 export interface ExtDef {
@@ -258,6 +264,8 @@ export const useSettings = create<Settings>()(
       saveHistory: true,
       gamesSource: "all",
       enableKeyboardShortcuts: true,
+      panicMode: false,
+      panicDisguise: "google-docs",
       setTheme: (theme) => set({ theme }),
       setWallpaper: (wallpaper) => set({ wallpaper }),
       setVideoWallpaper: (videoWallpaper) => set({ videoWallpaper }),
@@ -283,6 +291,8 @@ export const useSettings = create<Settings>()(
       setSaveHistory: (saveHistory) => set({ saveHistory }),
       setGamesSource: (gamesSource) => set({ gamesSource }),
       setEnableKeyboardShortcuts: (enableKeyboardShortcuts) => set({ enableKeyboardShortcuts }),
+      setPanicMode: (panicMode) => set({ panicMode }),
+      setPanicDisguise: (panicDisguise) => set({ panicDisguise }),
     }),
     { name: "redux-settings" },
   ),
