@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { X, Menu, Settings, Home, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Puzzle } from "lucide-react";
+import { Settings, Home, Puzzle, Trophy, FileText, ClipboardList } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
 import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
-// Brand icons loaded from CDNs.
 const BRAND_ICONS = {
   music: "https://commons.wikimedia.org/wiki/Special:FilePath/Spotify_App_Logo.svg?width=128",
   games: "https://cdn.simpleicons.org/playstation/white",
@@ -27,14 +26,14 @@ export function ToolBar() {
     { id: "music", label: "Music", icon: BRAND_ICONS.music },
     { id: "browser", label: "Browser", icon: BRAND_ICONS.browser },
     { id: "anime", label: "Anime", icon: BRAND_ICONS.anime },
+    { id: "docs", label: "Docs", icon: FileText },
+    { id: "forms", label: "Forms", icon: ClipboardList },
     { id: "extensions", label: "Extensions", icon: Puzzle },
+    { id: "achievements", label: "Awards", icon: Trophy },
   ];
 
-  // Close/hide button — uses the toolbar's position to pick an arrow.
-  const CloseIcon = { top: ChevronUp, left: ChevronLeft, right: ChevronRight, bottom: ChevronDown }[toolbarPos];
   const isHorizontal = toolbarPos === "top" || toolbarPos === "bottom";
 
-  // Position styles.
   const containerStyle: React.CSSProperties = {
     position: "fixed",
     zIndex: 50,
@@ -49,7 +48,7 @@ export function ToolBar() {
       <div style={containerStyle}>
         <div
           className={cn(
-            "flex items-center gap-1 rounded-2xl border p-1.5 shadow-2xl backdrop-blur-2xl",
+            "flex max-h-[calc(100vh-2rem)] items-center gap-1 overflow-y-auto rounded-2xl border p-1.5 shadow-2xl backdrop-blur-2xl",
             !isHorizontal && "flex-col",
           )}
           style={{
@@ -62,7 +61,7 @@ export function ToolBar() {
             <img src="/logo.svg" alt="redux" className="h-7 w-7" />
           </button>
 
-          <div className={cn("mx-1", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
+          <div className={cn("mx-1 flex-none", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
 
           {/* App icons */}
           {items.map((item) => {
@@ -72,7 +71,7 @@ export function ToolBar() {
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className="group relative flex h-9 w-9 items-center justify-center rounded-xl transition-all"
+                className="group relative flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-all"
                 style={{ background: active ? "var(--accent)" : "transparent" }}
                 title={item.label}
                 aria-label={item.label}
@@ -94,7 +93,6 @@ export function ToolBar() {
                     return <Icon className="h-5 w-5" style={{ color: active ? "var(--bg)" : "var(--text)" }} />;
                   })()
                 )}
-                {/* Tooltip */}
                 <span
                   className={cn(
                     "pointer-events-none absolute z-50 whitespace-nowrap rounded-md px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100",
@@ -111,16 +109,15 @@ export function ToolBar() {
             );
           })}
 
-          <div className={cn("mx-1", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
+          <div className={cn("mx-1 flex-none", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
 
           {/* Settings */}
-          <button onClick={() => setSettingsOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:surface2" title="Settings" aria-label="Settings">
+          <button onClick={() => setSettingsOpen(true)} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-colors hover:surface2" title="Settings" aria-label="Settings">
             <Settings className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
           </button>
         </div>
       </div>
 
-      {/* Floating reopen button (always visible, opens settings when toolbar hidden) */}
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );

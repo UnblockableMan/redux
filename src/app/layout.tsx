@@ -19,9 +19,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// Scripts that must load before the app — Scramjet proxy dependencies.
+const headScripts = `
+<script src="https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.all.js" defer></script>
+<script type="module">
+  import * as BareMux from "https://cdn.jsdelivr.net/npm/@mercuryworkshop/bare-mux/dist/index.mjs";
+  window.BareMux = BareMux;
+</script>
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head dangerouslySetInnerHTML={{ __html: headScripts }} />
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
         <Toaster />

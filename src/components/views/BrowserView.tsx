@@ -1,38 +1,31 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ExternalLink, X, AlertCircle, Puzzle } from "lucide-react";
+import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ExternalLink, AlertCircle } from "lucide-react";
 import { useSettings } from "@/store/settings";
 import { toast } from "sonner";
 
-// Scramjet is loaded from the Mercury Workshop CDN.
-const SCRAMJET_URL = "https://cdn.jsdelivr.net/npm/@mercuryworkshop/scramjet/dist/scramjet.min.js";
-
 declare global {
   interface Window {
-    ScramjetController?: any;
-    scramjet?: any;
+    $scramjetLoadController?: () => { ScramjetController: any; ScramjetFrame: any };
+    BareMux?: any;
   }
 }
 
-interface HistoryEntry {
-  url: string;       // real https:// URL
-  display: string;   // redux:// display URL
-  proxied: string;   // scramjet-encoded URL for iframe
+const DEFAULT_WISP = "wss://wisp.mercurywork.shop:443";
+
+function getBasePath() {
+  const p = location.pathname.replace(/[^/]*$/, "");
+  return p.endsWith("/") ? p : p + "/";
 }
 
 function toReduxUrl(url: string): string {
   return url.replace(/^https?:\/\//, "redux://");
 }
 
-function fromReduxUrl(url: string): string {
-  return url.replace(/^redux:\/\//, "https://");
-}
-
 function normalizeUrl(input: string): string {
   let u = input.trim();
   if (!u) return "";
-  // Accept redux:// prefix
   u = u.replace(/^redux:\/\//, "https://");
   if (!/^https?:\/\//.test(u)) {
     if (/^[\w-]+(\.[\w-]+)+/.test(u)) u = "https://" + u;
@@ -42,116 +35,145 @@ function normalizeUrl(input: string): string {
 }
 
 export function BrowserView() {
-  const { wispUrl } = useSettings();
+  const { wispUrl, unlockAchievement } = useSettings();
   const [input, setInput] = useState("");
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [currentUrl, setCurrentUrl] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   const [idx, setIdx] = useState(-1);
-  const [iframeKey, setIframeKey] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [scramjetReady, setScramjetReady] = useState(false);
-  const [scramjetError, setScramjetError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const frameHostRef = useRef<HTMLDivElement | null>(null);
+  const scramjetRef = useRef<any>(null);
+  const frameRef = useRef<any>(null);
 
-  // Load and initialize Scramjet.
+  // Initialize Scramjet.
   useEffect(() => {
     let cancelled = false;
 
-    const initScramjet = async () => {
+    const init = async () => {
       try {
-        // Load the Scramjet library if not already loaded.
-        if (!window.ScramjetController) {
-          await new Promise<void>((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = SCRAMJET_URL;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error("Failed to load Scramjet library"));
-            document.head.appendChild(script);
-          });
+        // Wait for the global to be available (script is defer-loaded).
+        let tries = 0;
+        while (!window.$scramjetLoadController && tries < 50) {
+          await new Promise((r) => setTimeout(r, 100));
+          tries++;
+        }
+        if (!window.$scramjetLoadController) throw new Error("Scramjet library not loaded");
+
+        const basePath = getBasePath();
+        const { ScramjetController } = window.$scramjetLoadController();
+
+        const controller = new ScramjetController({
+          prefix: basePath + "scramjet/",
+          files: {
+            wasm: "https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.wasm.wasm",
+            all: "https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.all.js",
+            sync: "https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.sync.js",
+          },
+        });
+
+        try {
+          await controller.init();
+        } catch (err: any) {
+          // Clear IndexedDB on schema mismatch and retry.
+          if (err?.message?.includes("IDBDatabase") || err?.message?.includes("object stores")) {
+            for (const db of ["scramjet-data", "scrambase", "ScramjetData"]) {
+              indexedDB.deleteDatabase(db);
+            }
+            await controller.init();
+          } else {
+            throw err;
+          }
         }
 
         if (cancelled) return;
 
-        // Configure Scramjet with the Wisp URL.
-        const config = {
-          wisp: {
-            url: wispUrl,
-          },
-          rtc: {
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-          },
-        };
+        // Register the service worker.
+        if ("serviceWorker" in navigator) {
+          const reg = await navigator.serviceWorker.register(basePath + "sw.js", { scope: basePath });
+          await navigator.serviceWorker.ready;
 
-        // Register the Scramjet service worker.
-        if (window.ScramjetController) {
-          await window.ScramjetController.init(config);
-          if (!cancelled) {
-            setScramjetReady(true);
-            setScramjetError(null);
+          const sendConfig = () => {
+            const sw = reg.active || navigator.serviceWorker.controller;
+            if (sw) sw.postMessage({ type: "config", wispurl: wispUrl });
+          };
+          sendConfig();
+          setTimeout(sendConfig, 500);
+          setTimeout(sendConfig, 1500);
+        }
+
+        scramjetRef.current = controller;
+
+        // Create a proxy frame.
+        const frame = controller.createFrame();
+        frameHostRef.current?.appendChild(frame.frame);
+        frame.frame.style.width = "100%";
+        frame.frame.style.height = "100%";
+        frame.frame.style.border = "none";
+
+        frame.addEventListener("urlchange", (e: any) => {
+          if (e.url) {
+            setCurrentUrl(e.url);
+            setInput(toReduxUrl(e.url));
           }
+        });
+
+        frameRef.current = frame;
+        if (!cancelled) {
+          setReady(true);
+          setError(null);
         }
       } catch (err: any) {
         if (!cancelled) {
-          setScramjetError(err?.message || "Scramjet init failed");
+          setError(err?.message || "Scramjet init failed");
           toast.error("Proxy setup failed", { description: err?.message });
         }
       }
     };
 
-    initScramjet();
-    return () => { cancelled = true; };
+    init();
+    return () => {
+      cancelled = true;
+      if (frameRef.current?.frame?.parentNode) {
+        frameRef.current.frame.parentNode.removeChild(frameRef.current.frame);
+      }
+    };
   }, [wispUrl]);
 
-  const encodeUrl = useCallback((url: string): string => {
-    if (scramjetReady && window.ScramjetController?.encodeUrl) {
-      try {
-        return window.ScramjetController.encodeUrl(url);
-      } catch {
-        return url;
-      }
-    }
-    // Fallback: load directly (may be blocked by X-Frame-Options)
-    return url;
-  }, [scramjetReady]);
-
-  const current = idx >= 0 ? history[idx] : null;
-
-  const navigate = (raw: string) => {
-    const url = normalizeUrl(raw);
-    if (!url) return;
-    const proxied = encodeUrl(url);
-    const entry: HistoryEntry = { url, display: toReduxUrl(url), proxied };
-    const newHist = [...history.slice(0, idx + 1), entry];
-    setHistory(newHist);
-    setIdx(newHist.length - 1);
-    setInput(toReduxUrl(url));
-    setLoading(true);
-    setIframeKey((k) => k + 1);
-  };
+  const navigate = useCallback(
+    (raw: string) => {
+      const url = normalizeUrl(raw);
+      if (!url || !frameRef.current) return;
+      setLoading(true);
+      unlockAchievement("first-browse");
+      const newHist = [...history.slice(0, idx + 1), url];
+      setHistory(newHist);
+      setIdx(newHist.length - 1);
+      setInput(toReduxUrl(url));
+      setCurrentUrl(url);
+      frameRef.current.go(url);
+    },
+    [history, idx, unlockAchievement],
+  );
 
   const back = () => {
-    if (idx > 0) {
+    if (idx > 0 && frameRef.current) {
       const i = idx - 1;
       setIdx(i);
-      setInput(history[i].display);
-      setIframeKey((k) => k + 1);
+      frameRef.current.go(history[i]);
     }
   };
   const forward = () => {
-    if (idx < history.length - 1) {
+    if (idx < history.length - 1 && frameRef.current) {
       const i = idx + 1;
       setIdx(i);
-      setInput(history[i].display);
-      setIframeKey((k) => k + 1);
+      frameRef.current.go(history[i]);
     }
   };
-  const reload = () => { setIframeKey((k) => k + 1); setLoading(true); };
+  const reload = () => frameRef.current?.reload();
   const goHome = () => navigate("https://duckduckgo.com");
-  const openExternal = () => { if (current) window.open(current.url, "_blank"); };
-
-  useEffect(() => {
-    if (!current) return;
-    const timer = setTimeout(() => setLoading(false), 6000);
-    return () => clearTimeout(timer);
-  }, [iframeKey, current]);
+  const openExternal = () => { if (currentUrl) window.open(currentUrl, "_blank"); };
 
   return (
     <div className="flex h-full flex-col">
@@ -159,44 +181,35 @@ export function BrowserView() {
       <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "var(--border)" }}>
         <button onClick={back} disabled={idx <= 0} className="rounded-lg p-1.5 transition-colors hover:surface2 disabled:opacity-30" aria-label="Back"><ArrowLeft className="h-4 w-4" /></button>
         <button onClick={forward} disabled={idx >= history.length - 1} className="rounded-lg p-1.5 transition-colors hover:surface2 disabled:opacity-30" aria-label="Forward"><ArrowRight className="h-4 w-4" /></button>
-        <button onClick={reload} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Reload"><RotateCw className="h-4 w-4" /></button>
+        <button onClick={reload} disabled={!currentUrl} className="rounded-lg p-1.5 transition-colors hover:surface2 disabled:opacity-30" aria-label="Reload"><RotateCw className="h-4 w-4" /></button>
         <button onClick={goHome} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Home"><Home className="h-4 w-4" /></button>
         <form className="flex flex-1 items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface2)" }} onSubmit={(e) => { e.preventDefault(); navigate(input); }}>
           <Lock className="h-3.5 w-3.5" style={{ color: "var(--text-muted)" }} />
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="redux://search or enter address" className="flex-1 bg-transparent text-sm outline-none" spellCheck={false} />
           {loading && <div className="h-4 w-4 spin-slow rounded-full border-2" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />}
         </form>
-        {current && <button onClick={openExternal} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Open in new tab"><ExternalLink className="h-4 w-4" /></button>}
+        {currentUrl && <button onClick={openExternal} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Open in new tab"><ExternalLink className="h-4 w-4" /></button>}
       </div>
 
-      {/* Status bar */}
-      {!scramjetReady && (
-        <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs" style={{ borderColor: "var(--border)", color: scramjetError ? "#ef4444" : "var(--text-muted)" }}>
-          {scramjetError ? <><AlertCircle className="h-3 w-3" /> Proxy: {scramjetError}. Direct mode.</> : <><div className="h-3 w-3 spin-slow rounded-full border" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} /> Starting Scramjet proxy…</>}
+      {/* Status */}
+      {!ready && (
+        <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs" style={{ borderColor: "var(--border)", color: error ? "#ef4444" : "var(--text-muted)" }}>
+          {error ? <><AlertCircle className="h-3 w-3" /> {error}</> : <><div className="h-3 w-3 spin-slow rounded-full border" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} /> Starting Scramjet proxy…</>}
         </div>
       )}
 
-      {/* Content */}
+      {/* Frame host */}
       <div className="relative flex-1" style={{ background: "#fff" }}>
-        {!current ? (
+        {!currentUrl ? (
           <StartPage onNavigate={navigate} />
-        ) : (
-          <iframe
-            key={iframeKey}
-            src={current.proxied}
-            className="h-full w-full border-0"
-            title="Browser"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-presentation allow-modals allow-downloads"
-            onLoad={() => setLoading(false)}
-            allow="fullscreen; autoplay; encrypted-media; picture-in-picture; geolocation"
-          />
-        )}
+        ) : null}
+        <div ref={frameHostRef} className="absolute inset-0" style={{ display: currentUrl ? "block" : "none" }} />
       </div>
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t px-3 py-1 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
-        <span className="truncate">{current ? current.display : "Ready"}</span>
-        <span>Scramjet: {scramjetReady ? "active" : scramjetError ? "fallback" : "starting…"}</span>
+        <span className="truncate">{currentUrl ? toReduxUrl(currentUrl) : "Ready"}</span>
+        <span>Scramjet: {ready ? "active" : error ? "error" : "starting…"}</span>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Search, Play, ArrowLeft, X, Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSettings } from "@/store/settings";
 
 // AniKoto API — same endpoint Lyra uses.
 const ANIKOTO_API = "https://anikotoapi.site";
@@ -37,6 +38,7 @@ interface AnikotoEpisode {
 }
 
 export function AnimeView() {
+  const unlockAchievement = useSettings((s) => s.unlockAchievement);
   const [recent, setRecent] = useState<AnikotoRecentItem[]>([]);
   const [searchResults, setSearchResults] = useState<AnikotoRecentItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,6 +88,7 @@ export function AnimeView() {
   const playEpisode = (ep: AnikotoEpisode, title: string) => {
     setCurrentEp({ embedId: ep.episode_embed_id, title, ep: ep.number });
     setView("watch");
+    unlockAchievement("first-anime");
   };
 
   if (view === "watch" && currentEp) {

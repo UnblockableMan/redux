@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Star, Play, X, ExternalLink, Loader2 } from "lucide-react";
+import { Search, Star, Play, X, ExternalLink, Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useSettings } from "@/store/settings";
 
 interface Game {
   id: number;
@@ -159,6 +160,28 @@ function GameCard({ game, onPlay, onFav, isFav }: { game: Game; onPlay: () => vo
 }
 
 function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
+  const { unlockAchievement } = useSettings();
+
+  // Unlock "first-game" achievement on mount.
+  useEffect(() => {
+    unlockAchievement("first-game");
+  }, [unlockAchievement]);
+
+  const openAboutBlank = () => {
+    // Opens the game in a new about:blank window so it can't be tab-closed easily.
+    const win = window.open("about:blank", "_blank");
+    if (!win) {
+      toast.error("Popup blocked", { description: "Allow popups to use about:blank." });
+      return;
+    }
+    win.document.write(`
+      <!DOCTYPE html><html><head><title>${game.name}</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:0}</style>
+      </head><body><iframe src="${resolveUrl(game.url)}" allow="fullscreen;gamepad;autoplay"></iframe></body></html>
+    `);
+    win.document.close();
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
@@ -167,6 +190,9 @@ function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
           {game.author && <span style={{ color: "var(--text-muted)" }}>· {game.author}</span>}
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={openAboutBlank} className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
+            <FileText className="h-3 w-3" /> about:blank
+          </button>
           <a href={resolveUrl(game.url)} target="_blank" rel="noopener" className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
             <ExternalLink className="h-3 w-3" /> Open
           </a>
@@ -176,7 +202,7 @@ function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
         </div>
       </div>
       <div className="relative flex-1 bg-black">
-        <iframe src={resolveUrl(game.url)} className="h-full w-full border-0" title={game.name} allow="fullscreen; gamepad; autoplay" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation" />
+        <iframe src={resolveUrl(game.url)} className="h-full w-full border-0" title={game.name} allow="fullscreen; gamepad; autoplay; encrypted-media; pointer-lock" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock" />
       </div>
     </div>
   );

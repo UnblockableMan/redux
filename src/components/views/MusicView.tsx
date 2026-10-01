@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import { Search, ExternalLink } from "lucide-react";
+import { useSettings } from "@/store/settings";
 
 export function MusicView() {
   const [query, setQuery] = useState("");
   const [embedUrl, setEmbedUrl] = useState("https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0");
+  const unlockAchievement = useSettings((s) => s.unlockAchievement);
 
   const search = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    // If it's a Spotify URL, embed it directly
+    unlockAchievement("first-song");
     if (query.includes("open.spotify.com")) {
       const embed = query.replace("open.spotify.com/", "open.spotify.com/embed/");
       setEmbedUrl(embed);
     } else {
-      // Search on Spotify via embed search
       setEmbedUrl(`https://open.spotify.com/embed/search/${encodeURIComponent(query)}`);
     }
   };
