@@ -24,19 +24,32 @@ function toReduxUrl(url: string): string {
   return url.replace(/^https?:\/\//, "redux://");
 }
 
-function normalizeUrl(input: string): string {
+const SEARCH_ENGINES: Record<string, string> = {
+  duckduckgo: "https://duckduckgo.com/?q=",
+  google: "https://www.google.com/search?q=",
+  bing: "https://www.bing.com/search?q=",
+  // startpage uses ?query= for GET searches.
+  startpage: "https://www.startpage.com/sp/search?query=",
+  brave: "https://search.brave.com/search?q=",
+};
+
+function normalizeUrl(input: string, engine: string = "duckduckgo"): string {
   let u = input.trim();
   if (!u) return "";
   u = u.replace(/^redux:\/\//, "https://");
   if (!/^https?:\/\//.test(u)) {
     if (/^[\w-]+(\.[\w-]+)+/.test(u)) u = "https://" + u;
-    else u = "https://duckduckgo.com/?q=" + encodeURIComponent(u);
+    else {
+      const base = SEARCH_ENGINES[engine] || SEARCH_ENGINES.duckduckgo;
+      // startpage uses POST-style ?query= — handle GET param differently.
+      u = base + encodeURIComponent(u);
+    }
   }
   return u;
 }
 
 export function BrowserView() {
-  const { wispUrl, unlockAchievement } = useSettings();
+  const { wispUrl, unlockAchievement, searchEngine } = useSettings();
   const [input, setInput] = useState("");
   const [currentUrl, setCurrentUrl] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -160,7 +173,7 @@ export function BrowserView() {
 
   const navigate = useCallback(
     (raw: string) => {
-      const url = normalizeUrl(raw);
+      const url = normalizeUrl(raw, searchEngine);
       if (!url || !frameRef.current) return;
       setLoading(true);
       unlockAchievement("first-browse");
@@ -171,7 +184,7 @@ export function BrowserView() {
       setCurrentUrl(url);
       frameRef.current.go(url);
     },
-    [history, idx, unlockAchievement],
+    [history, idx, unlockAchievement, searchEngine],
   );
 
   const back = () => {
@@ -189,7 +202,7 @@ export function BrowserView() {
     }
   };
   const reload = () => frameRef.current?.reload();
-  const goHome = () => navigate("https://duckduckgo.com");
+  const goHome = () => navigate(SEARCH_ENGINES[searchEngine] || SEARCH_ENGINES.duckduckgo);
   const openExternal = () => { if (currentUrl) window.open(currentUrl, "_blank"); };
 
   return (
@@ -233,6 +246,15 @@ export function BrowserView() {
 }
 
 function StartPage({ onNavigate }: { onNavigate: (url: string) => void }) {
+  const searchEngine = useSettings((s) => s.searchEngine);
+  const [query, setQuery] = useState("");
+  const engineLabel: Record<string, string> = {
+    duckduckgo: "DuckDuckGo",
+    google: "Google",
+    bing: "Bing",
+    startpage: "Startpage",
+    brave: "Brave",
+  };
   const shortcuts = [
     { name: "Google", url: "https://google.com", emoji: "🔍" },
     { name: "YouTube", url: "https://youtube.com", emoji: "📺" },
@@ -243,11 +265,29 @@ function StartPage({ onNavigate }: { onNavigate: (url: string) => void }) {
     { name: "Discord", url: "https://discord.com", emoji: "💬" },
     { name: "Twitch", url: "https://twitch.tv", emoji: "🎮" },
   ];
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    // If the user typed something URL-like, treat as URL; else search.
+    onNavigate(query.trim());
+    setQuery("");
+  };
   return (
     <div className="flex h-full flex-col items-center justify-center p-8" style={{ background: "var(--bg)" }}>
       <img src={withBase("logo.svg")} alt="redux" className="mb-4 h-12 w-12" />
       <h1 className="mb-1 text-2xl font-bold">redux browser</h1>
-      <p className="mb-8 text-sm" style={{ color: "var(--text-muted)" }}>Browse the web through Scramjet. redux:// all the way.</p>
+      <p className="mb-6 text-sm" style={{ color: "var(--text-muted)" }}>Browse the web through Scramjet. redux:// all the way.</p>
+      <form onSubmit={submit} className="mb-8 w-full max-w-xl">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Search ${engineLabel[searchEngine] || "the web"} or enter address…`}
+          className="w-full rounded-full border bg-transparent px-5 py-3 text-sm outline-none"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          autoFocus
+          spellCheck={false}
+        />
+      </form>
       <div className="grid grid-cols-4 gap-3">
         {shortcuts.map((s) => (
           <button key={s.name} onClick={() => onNavigate(s.url)} className="flex flex-col items-center gap-2 rounded-xl border p-4 transition-all hover:scale-105" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
