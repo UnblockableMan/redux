@@ -15,18 +15,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "abroad — a music player",
+  title: "abroad OS — a web desktop",
   description:
-    "abroad is a static, client-side YouTube Music player. Search, stream, queue and build your own library — no backend, no account.",
-  keywords: ["abroad", "music player", "YouTube Music", "static", "GitHub Pages"],
+    "abroad OS is a static, client-side web desktop. Window manager, dock, apps, and a built-in music player — no backend, no account.",
+  keywords: ["abroad", "web OS", "desktop", "music player", "Cloudflare Pages"],
   authors: [{ name: "abroad" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "abroad — a music player",
+    title: "abroad OS — a web desktop",
     description:
-      "Static, client-side YouTube Music player with glassmorphism UI and YouTube IFrame playback.",
+      "A static web desktop environment with a built-in YouTube Music player.",
     type: "website",
   },
 };
@@ -39,20 +39,19 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// Inline script to apply the saved theme before hydration (prevents flash).
-const themeScript = `
+// Inline script to mark as booted=false on first load so the boot screen shows.
+const bootScript = `
 (function() {
   try {
-    var raw = localStorage.getItem('abroad-theme');
-    var theme = 'dark';
+    var raw = localStorage.getItem('abroad-os-settings');
     if (raw) {
       var parsed = JSON.parse(raw);
-      theme = parsed?.state?.theme || 'dark';
+      // If already booted in a prior session, skip boot screen on reload.
+      if (parsed?.state?.booted) {
+        document.documentElement.setAttribute('data-booted', '1');
+      }
     }
-    document.documentElement.setAttribute('data-theme', theme);
-  } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
+  } catch (e) {}
 })();
 `;
 
@@ -64,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: bootScript }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground overflow-hidden`}

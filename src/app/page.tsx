@@ -1,80 +1,48 @@
 "use client";
 
 import { useEffect } from "react";
-import { useNav } from "@/store/nav";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { MobileNav } from "@/components/layout/MobileNav";
-import { PlayerBar } from "@/components/player/PlayerBar";
-import { NowPlaying } from "@/components/player/NowPlaying";
-import { QueuePanel } from "@/components/player/QueuePanel";
+import { useOSSettings } from "@/store/os-settings";
+import { BootScreen } from "@/components/os/BootScreen";
+import { Desktop } from "@/components/os/Desktop";
+import { TopBar } from "@/components/os/TopBar";
+import { Dock } from "@/components/os/Dock";
+import { WindowManager } from "@/components/os/WindowManager";
 import { PlayerAudio } from "@/components/player/PlayerAudio";
-import { TrackMenuProvider } from "@/components/track/TrackContextMenu";
-import { HomeView } from "@/components/views/HomeView";
-import { SearchView } from "@/components/views/SearchView";
-import { LibraryView } from "@/components/views/LibraryView";
-import { AlbumView } from "@/components/views/AlbumView";
-import { ArtistView } from "@/components/views/ArtistView";
-import { LikedView, RecentlyPlayedView, PlaylistView } from "@/components/views/LibraryViews";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { ThemeApplier } from "@/components/layout/ThemeApplier";
+import { ACCENTS } from "@/store/os-settings";
 
 export default function Page() {
-  const view = useNav((s) => s.view);
+  const { booted, accent, reducedMotion } = useOSSettings();
   useKeyboardShortcuts();
 
-  // Scroll the main view to top whenever it changes.
+  // Apply the accent color as a CSS variable on the root.
   useEffect(() => {
-    const main = document.getElementById("main-scroll");
-    if (main) main.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-  }, [view]);
+    const a = ACCENTS.find((x) => x.id === accent) ?? ACCENTS[0];
+    // Override the theme's primary color with the OS accent selection.
+    document.documentElement.style.setProperty("--primary", a.color);
+    document.documentElement.style.setProperty("--ring", a.color);
+    document.documentElement.style.setProperty("--sidebar-primary", a.color);
+    document.documentElement.style.setProperty("--sidebar-ring", a.color);
+    document.documentElement.setAttribute("data-accent", accent);
+  }, [accent]);
+
+  // Apply reduced-motion class.
+  useEffect(() => {
+    document.documentElement.classList.toggle("reduce-motion", reducedMotion);
+  }, [reducedMotion]);
+
+  if (!booted) return <BootScreen />;
 
   return (
-    <TrackMenuProvider>
-      <ThemeApplier />
-      <div className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
-          <main id="main-scroll" className="flex-1 overflow-y-auto">
-            <ViewSwitcher view={view} />
-          </main>
-        </div>
+    <div className="relative h-dvh w-full overflow-hidden">
+      <Desktop />
+      <TopBar />
+      <WindowManager />
+      <Dock />
 
-        {/* Player bar (desktop + mobile mini-player) */}
-        <PlayerBar />
-
-        {/* Mobile bottom nav */}
-        <MobileNav />
-
-        {/* Overlays */}
-        <NowPlaying />
-        <QueuePanel />
-
-        {/* Hidden audio element — the heart of playback */}
-        <PlayerAudio />
-      </div>
-    </TrackMenuProvider>
+      {/* The music player's audio engine lives at the OS root so audio
+          keeps playing even when the music window is closed. */}
+      <PlayerAudio />
+    </div>
   );
-}
-
-function ViewSwitcher({ view }: { view: ReturnType<typeof useNav.getState>["view"] }) {
-  switch (view.name) {
-    case "home":
-      return <HomeView />;
-    case "search":
-      return <SearchView />;
-    case "library":
-      return <LibraryView />;
-    case "album":
-      return <AlbumView key={view.albumId} albumId={view.albumId} />;
-    case "artist":
-      return <ArtistView key={view.artistId} artistId={view.artistId} />;
-    case "liked":
-      return <LikedView />;
-    case "recently-played":
-      return <RecentlyPlayedView />;
-    case "playlist":
-      return <PlaylistView key={view.playlistId} playlistId={view.playlistId} />;
-    default:
-      return <HomeView />;
-  }
 }

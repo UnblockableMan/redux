@@ -1,31 +1,32 @@
 import type { NextConfig } from "next";
 
-// For GitHub Pages deployment:
-//   1) Set NEXT_PUBLIC_BASE_PATH to "/<repo-name>" (e.g. "/abroad")
-//   2) Set NEXT_PUBLIC_STATIC_EXPORT=1
-//   3) Run: bun run build:gh  (or npm run build:gh)
-//   4) Push the contents of ./out to the gh-pages branch
+// abroad OS — static export for Cloudflare Pages (or GitHub Pages, Netlify, etc.)
+//
+// For Cloudflare Pages:
+//   Build command:   npm run build:cf
+//   Build output:    out
+//
+// The build produces a fully static ./out directory. No server, no edge
+// functions — just HTML/CSS/JS that runs entirely in the browser.
 const isStaticExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === "1";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig: NextConfig = {
   output: isStaticExport ? "export" : "standalone",
   basePath,
-  // Generate trailing slashes so GitHub Pages serves folder/index.html
+  // Trailing slashes so static hosts serve folder/index.html
   trailingSlash: isStaticExport,
   images: {
-    // GitHub Pages static export cannot run the Next.js image optimizer.
+    // Static export cannot run the Next.js image optimizer.
     unoptimized: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Dev preview lints on save; production builds skip the lint step so
-    // GitHub Pages deploys are not blocked by style warnings.
     ignoreDuringBuilds: true,
   },
-  allowedDevOrigins: ["*.space-z.ai", "*.chatglm.cn"],
+  allowedDevOrigins: ["*.space-z.ai", "*.chatglm.cn", "*.pages.dev"],
   reactStrictMode: false,
 };
 
