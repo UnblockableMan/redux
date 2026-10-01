@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useNav } from "@/store/nav";
 import { useSettings } from "@/store/settings";
-import { ToolBelt } from "@/components/ToolBelt";
+import { ToolBar } from "@/components/ToolBar";
 import { ThemeApplier } from "@/components/ThemeApplier";
 import { HomeView } from "@/components/views/HomeView";
 import { GamesView } from "@/components/views/GamesView";
@@ -15,13 +15,7 @@ import { PlayerAudio } from "@/components/player/PlayerAudio";
 
 export default function Page() {
   const view = useNav((s) => s.view);
-  const reducedMotion = false; // Could add to settings later
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("reduce-motion", reducedMotion);
-  }, [reducedMotion]);
-
-  // Scroll to top on view change.
   useEffect(() => {
     const el = document.getElementById("main-scroll");
     if (el) el.scrollTo({ top: 0 });
@@ -31,8 +25,7 @@ export default function Page() {
     <>
       <ThemeApplier />
       <div className="flex h-dvh w-full overflow-hidden" style={{ background: "var(--bg)" }}>
-        <ToolBelt />
-        <main id="main-scroll" className="flex-1 overflow-y-auto" style={{ marginLeft: "4rem" }}>
+        <main id="main-scroll" className="flex-1 overflow-y-auto pt-20">
           {view === "home" && <HomeView />}
           {view === "games" && <GamesView />}
           {view === "music" && <MusicView />}
@@ -41,7 +34,7 @@ export default function Page() {
           {view === "setup" && <SetupView />}
         </main>
       </div>
-      {/* Music player audio engine — mounted at root so audio persists across views */}
+      <ToolBar />
       <PlayerAudio />
     </>
   );

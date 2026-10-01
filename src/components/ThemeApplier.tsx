@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useSettings, THEMES } from "@/store/settings";
 
-/** Applies theme variables + reduced motion + tab cloak to the document. */
 export function ThemeApplier() {
   const theme = useSettings((s) => s.theme);
   const cloakTitle = useSettings((s) => s.cloakTitle);
@@ -22,18 +21,17 @@ export function ThemeApplier() {
   }, [theme]);
 
   useEffect(() => {
-    if (cloakTitle) document.title = cloakTitle;
-    else document.title = "abroad";
+    document.title = cloakTitle || "redux.";
   }, [cloakTitle]);
 
   useEffect(() => {
     const icon: HTMLLinkElement | null = document.querySelector("link[rel='icon']");
     if (cloakIcon) {
       if (!icon) {
-        const newIcon = document.createElement("link");
-        newIcon.rel = "icon";
-        newIcon.href = cloakIcon;
-        document.head.appendChild(newIcon);
+        const ni = document.createElement("link");
+        ni.rel = "icon";
+        ni.href = cloakIcon;
+        document.head.appendChild(ni);
       } else {
         icon.href = cloakIcon;
       }

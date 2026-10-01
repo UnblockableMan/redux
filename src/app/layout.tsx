@@ -8,13 +8,13 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "abroad",
-  description: "A static web proxy hub — games, music, browser, and anime.",
+  title: "redux.",
+  description: "static web proxy hub — games, music, browser, anime.",
   icons: { icon: "/logo.svg" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d0d0f",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
 };
