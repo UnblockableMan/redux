@@ -52,19 +52,29 @@ export function HomeView() {
 
 function Section({ section }: { section: HomeSection }) {
   if (!section.items.length) return null;
+  // Collect all tracks in this section so clicking any one plays the whole list.
+  const sectionTracks = section.items.filter(
+    (i): i is YTMTrack => !!(i as any).videoId,
+  );
   return (
     <section>
       <h2 className="mb-4 text-xl font-semibold tracking-tight">{section.title}</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {section.items.slice(0, 12).map((item, i) => (
-          <Card key={i} item={item} />
+          <Card key={i} item={item} sectionTracks={sectionTracks} />
         ))}
       </div>
     </section>
   );
 }
 
-function Card({ item }: { item: YTMTrack | YTMAlbum | YTMArtist | YTMPlaylist }) {
+function Card({
+  item,
+  sectionTracks = [],
+}: {
+  item: YTMTrack | YTMAlbum | YTMArtist | YTMPlaylist;
+  sectionTracks?: YTMTrack[];
+}) {
   const playTracks = usePlayer((s) => s.playTracks);
   const go = useNav((s) => s.go);
 
@@ -83,8 +93,12 @@ function Card({ item }: { item: YTMTrack | YTMAlbum | YTMArtist | YTMPlaylist })
     title = item.title;
     subtitle = artistsLabel(item.artists);
     thumbnail = item.thumbnail;
-    onClick = () => playTracks([item], 0);
-    onPlay = () => playTracks([item], 0);
+    // Play from this track's position within the section's track list.
+    const trackIndex = sectionTracks.findIndex((t) => t.videoId === item.videoId);
+    const list = trackIndex >= 0 ? sectionTracks : [item];
+    const startIndex = trackIndex >= 0 ? trackIndex : 0;
+    onClick = () => playTracks(list, startIndex);
+    onPlay = () => playTracks(list, startIndex);
   } else if (isAlbum(item)) {
     title = item.title;
     subtitle = item.year ?? "Album";

@@ -1,144 +1,237 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "@/store/player";
 import { useLibrary } from "@/store/library";
-import { resolveStream } from "@/lib/ytm/stream";
+import { loadYouTubeAPI } from "@/lib/youtube";
 import { toast } from "sonner";
 
 /**
- * PlayerAudio
- * ------------
- * A single hidden <audio> element that is the source of truth for playback.
- * It reads the player store, resolves a stream URL on demand, and reports
- * timeupdates / ended events back to the store. Mounted once at the app root.
+ * PlayerAudio — YouTube IFrame API backend.
+ *
+ * Creates a hidden YT.Player instance, loads videos by ID, and syncs state
+ * with the player store. The IFrame API always works (no CORS, no flaky
+ * third-party instances) and YouTube Music video IDs are standard YouTube IDs.
  */
 export function PlayerAudio() {
-  const ref = useRef<HTMLAudioElement | null>(null);
-  const resolvingRef = useRef<string | null>(null);
+  const playerRef = useRef<any>(null);
+  const [playerReady, setPlayerReady] = useState(false);
+  const lastVideoIdRef = useRef<string | null>(null);
+  const repeatRef = useRef<string>("off");
+  // Track whether we're in the middle of loading a new video so the
+  // play/pause effect doesn't interfere with loadVideoById.
+  const loadingRef = useRef(false);
 
-  // Subscribe to the slices we care about.
   const currentTrack = usePlayer((s) => s.queue[s.currentIndex] ?? null);
   const isPlaying = usePlayer((s) => s.isPlaying);
   const volume = usePlayer((s) => s.volume);
   const muted = usePlayer((s) => s.muted);
-  const seekTarget = usePlayer((s) => (s.currentTime === 0 ? null : null)); // placeholder
-  const streamUrl = usePlayer((s) => s.streamUrl);
+  const seekRequest = usePlayer((s) => s.seekRequest);
+  const repeat = usePlayer((s) => s.repeat);
 
   const setPlaying = usePlayer((s) => s.setPlaying);
   const setBuffering = usePlayer((s) => s.setBuffering);
   const setCurrentTime = usePlayer((s) => s.setCurrentTime);
   const setDuration = usePlayer((s) => s.setDuration);
+  const clearSeek = usePlayer((s) => s.clearSeek);
   const next = usePlayer((s) => s.next);
-  const setStream = usePlayer((s) => s.setStream);
   const addRecentlyPlayed = useLibrary((s) => s.addRecentlyPlayed);
 
-  // Resolve a stream URL whenever the current track changes.
   useEffect(() => {
-    if (!currentTrack) {
-      setStream(null, null);
-      return;
-    }
-    if (resolvingRef.current === currentTrack.videoId) return;
-    resolvingRef.current = currentTrack.videoId;
+    repeatRef.current = repeat;
+  }, [repeat]);
 
-    let cancelled = false;
-    const controller = new AbortController();
-    setBuffering(true);
-    setStream(null, null);
+  // Initialize the YT.Player once.
+  useEffect(() => {
+    let destroyed = false;
+    let hostEl: HTMLElement | null = null;
 
-    resolveStream(currentTrack.videoId, controller.signal)
-      .then((s) => {
-        if (cancelled) return;
-        setStream(s.url, s.source);
+    loadYouTubeAPI()
+      .then(() => {
+        if (destroyed) return;
+        const YT = window.YT;
+        if (!YT?.Player) return;
+
+        const host = document.createElement("div");
+        host.style.cssText =
+          "position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;pointer-events:none;opacity:0;";
+        document.body.appendChild(host);
+        hostEl = host;
+
+        playerRef.current = new YT.Player(host, {
+          height: "1",
+          width: "1",
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: () => {
+              setPlayerReady(true);
+              const p = playerRef.current;
+              if (p) {
+                const st = usePlayer.getState();
+                p.setVolume(Math.round(st.volume * 100));
+                if (st.muted) p.mute();
+                else p.unMute();
+              }
+            },
+            onStateChange: (e: any) => {
+              const Y = window.YT;
+              const p = playerRef.current;
+              if (!p || !Y) return;
+
+              if (e.data === Y.PlayerState.PLAYING) {
+                loadingRef.current = false;
+                setPlaying(true);
+                setBuffering(false);
+                const d = p.getDuration?.() ?? 0;
+                if (d > 0) setDuration(d);
+              } else if (e.data === Y.PlayerState.PAUSED) {
+                loadingRef.current = false;
+                setPlaying(false);
+                setBuffering(false);
+              } else if (e.data === Y.PlayerState.BUFFERING) {
+                setBuffering(true);
+              } else if (e.data === Y.PlayerState.ENDED) {
+                loadingRef.current = false;
+                if (repeatRef.current === "one") {
+                  p.seekTo(0, true);
+                  p.playVideo();
+                } else {
+                  next();
+                }
+              }
+            },
+            onError: (e: any) => {
+              loadingRef.current = false;
+              const code = e?.data;
+              let msg = "This video can't be played.";
+              if (code === 2) msg = "Invalid video ID.";
+              else if (code === 5) msg = "HTML5 player error.";
+              else if (code === 100) msg = "Video not found or is private.";
+              else if (code === 101 || code === 150)
+                msg = "This video doesn't allow embedded playback.";
+              toast.error("Playback error", {
+                description: `${msg} Skipping to next track.`,
+              });
+              next();
+            },
+          },
+        });
       })
       .catch((err) => {
-        if (cancelled) return;
-        toast.error("Couldn't load this track", {
-          description:
-            err?.message ??
-            "All streaming mirrors failed. Try another track or wait a moment.",
+        toast.error("Couldn't start the player", {
+          description: err?.message ?? "Please reload the page.",
         });
-        setPlaying(false);
-        setBuffering(false);
-      })
-      .finally(() => {
-        if (!cancelled) setBuffering(false);
       });
 
     return () => {
-      cancelled = true;
-      controller.abort();
+      destroyed = true;
+      try {
+        playerRef.current?.destroy?.();
+      } catch {}
+      playerRef.current = null;
+      setPlayerReady(false);
+      if (hostEl) hostEl.remove();
     };
-  }, [currentTrack?.videoId]);
+  }, [setPlaying, setBuffering, setDuration, next]);
 
-  // Apply the resolved stream URL to the <audio> element.
+  // Load a new video when the track changes.
+  // Uses loadVideoById which auto-plays — the play/pause effect skips
+  // while loadingRef is true to avoid interference.
   useEffect(() => {
-    const el = ref.current;
-    if (!el || !streamUrl) return;
-    if (el.src !== streamUrl) {
-      el.src = streamUrl;
-      el.load();
-    }
-  }, [streamUrl]);
+    const p = playerRef.current;
+    if (!p || !currentTrack || !playerReady) return;
+    if (lastVideoIdRef.current === currentTrack.videoId) return;
 
-  // Play / pause.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (isPlaying && streamUrl) {
-      el.play().catch((err) => {
-        // Autoplay can be blocked; surface it once.
-        if (err?.name === "NotAllowedError") {
-          toast.info("Tap play to start audio", {
-            description: "Your browser blocked autoplay. Press the play button.",
-          });
-          setPlaying(false);
+    lastVideoIdRef.current = currentTrack.videoId;
+    loadingRef.current = true;
+    setBuffering(true);
+    setCurrentTime(0);
+    setDuration(0);
+    p.loadVideoById(currentTrack.videoId);
+    addRecentlyPlayed(currentTrack);
+
+    // Fallback: some browsers block auto-play after loadVideoById when
+    // the call happens in an effect rather than directly in the click handler.
+    // If the video hasn't started after 1.5s, explicitly call playVideo().
+    const fallbackTimer = setTimeout(() => {
+      try {
+        const st = playerRef.current?.getPlayerState?.();
+        // -1 = unstarted, 5 = cued, 2 = paused — all mean "not playing"
+        if (st === -1 || st === 5 || st === 2) {
+          playerRef.current?.playVideo();
         }
-      });
-    } else {
-      el.pause();
-    }
-  }, [isPlaying, streamUrl, setPlaying]);
+      } catch {}
+    }, 1500);
+
+    // Second fallback at 3s in case the first one was too early.
+    const fallbackTimer2 = setTimeout(() => {
+      try {
+        const st = playerRef.current?.getPlayerState?.();
+        if (st === -1 || st === 5 || st === 2) {
+          if (usePlayer.getState().isPlaying) {
+            playerRef.current?.playVideo();
+          }
+        }
+      } catch {}
+    }, 3000);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      clearTimeout(fallbackTimer2);
+    };
+  }, [currentTrack?.videoId, playerReady, setBuffering, setCurrentTime, setDuration, addRecentlyPlayed]);
+
+  // Play / pause — but skip while a new video is loading.
+  useEffect(() => {
+    const p = playerRef.current;
+    if (!p || !playerReady || !currentTrack) return;
+    if (loadingRef.current) return; // loadVideoById handles auto-play
+    if (isPlaying) p.playVideo();
+    else p.pauseVideo();
+  }, [isPlaying, playerReady, currentTrack?.videoId]);
 
   // Volume / mute.
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.volume = volume;
-    el.muted = muted;
-  }, [volume, muted]);
+    const p = playerRef.current;
+    if (!p || !playerReady) return;
+    p.setVolume(Math.round(volume * 100));
+    if (muted) p.mute();
+    else p.unMute();
+  }, [volume, muted, playerReady]);
 
-  // Track recently played when a track actually starts.
-  const lastLoggedRef = useRef<string | null>(null);
+  // Seek.
   useEffect(() => {
-    if (currentTrack && isPlaying && lastLoggedRef.current !== currentTrack.videoId) {
-      lastLoggedRef.current = currentTrack.videoId;
-      addRecentlyPlayed(currentTrack);
-    }
-  }, [currentTrack, isPlaying, addRecentlyPlayed]);
+    const p = playerRef.current;
+    if (!p || !playerReady || seekRequest === null) return;
+    p.seekTo(seekRequest, true);
+    setCurrentTime(seekRequest);
+    clearSeek();
+  }, [seekRequest, playerReady, clearSeek, setCurrentTime]);
 
-  return (
-    <audio
-      ref={ref}
-      preload="auto"
-      crossOrigin="anonymous"
-      onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-      onLoadedMetadata={(e) => {
-        setDuration(e.currentTarget.duration);
-      }}
-      onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-      onWaiting={() => setBuffering(true)}
-      onPlaying={() => setBuffering(false)}
-      onCanPlay={() => setBuffering(false)}
-      onEnded={() => next()}
-      onError={() => {
-        // Surface a toast and skip ahead.
-        toast.error("Playback error", {
-          description: "Skipping to the next track.",
-        });
-        next();
-      }}
-    />
-  );
+  // Poll current time.
+  useEffect(() => {
+    if (!playerReady) return;
+    const id = setInterval(() => {
+      const p = playerRef.current;
+      if (!p) return;
+      try {
+        const t = p.getCurrentTime?.();
+        const d = p.getDuration?.();
+        if (typeof t === "number" && isFinite(t)) setCurrentTime(t);
+        if (typeof d === "number" && d > 0) setDuration(d);
+      } catch {}
+    }, 250);
+    return () => clearInterval(id);
+  }, [playerReady, setCurrentTime, setDuration]);
+
+  return null;
 }

@@ -7,6 +7,7 @@ import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function Sidebar() {
   const view = useNav((s) => s.view);
@@ -28,12 +29,15 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="glass-sidebar hidden h-full w-64 flex-none flex-col gap-2 border-r border-white/[0.06] px-3 py-4 md:flex">
+    <aside className="glass-sidebar hidden h-full w-64 flex-none flex-col gap-2 border-r border-border px-3 py-4 md:flex">
       {/* Wordmark */}
-      <div className="px-3 pb-2">
-        <div className="text-2xl font-bold tracking-tight text-gradient">abroad</div>
-        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          music player
+      <div className="flex items-center gap-2.5 px-3 pb-2">
+        <img src="/logo.svg" alt="abroad" className="h-9 w-9 flex-none" />
+        <div>
+          <div className="text-xl font-bold tracking-tight text-gradient leading-none">abroad</div>
+          <div className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            music player
+          </div>
         </div>
       </div>
 
@@ -119,6 +123,11 @@ export function Sidebar() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Theme switcher */}
+      <div className="border-t border-border pt-1">
+        <ThemeSwitcher />
       </div>
 
       {/* New playlist dialog */}

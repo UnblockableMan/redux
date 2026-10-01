@@ -1,16 +1,15 @@
 // Player store: current track, queue, playback state, shuffle/repeat.
-// Audio is rendered by a single hidden <audio> element (see PlayerAudio).
-// This store only owns *state* — the audio element reads from us and reports
-// timeupdates back to us.
+// Audio is driven by the YouTube IFrame API (see PlayerAudio component).
+// This store owns *state* only — the IFrame player reads from us and reports
+// state changes back to us.
 
 import { create } from "zustand";
 import type { YTMTrack, RepeatMode } from "@/lib/ytm/types";
 
 interface PlayerState {
-  // Queue (in original order; shuffle uses a separate index list).
   queue: YTMTrack[];
-  currentIndex: number; // index into `queue`
-  shuffleOrder: number[] | null; // when not null, plays in this order
+  currentIndex: number;
+  shuffleOrder: number[] | null;
   repeat: RepeatMode;
 
   isPlaying: boolean;
@@ -20,11 +19,9 @@ interface PlayerState {
   volume: number;
   muted: boolean;
 
-  // Resolved stream URL + its source (for toasts / debugging).
-  streamUrl: string | null;
-  streamSource: string | null;
+  // When non-null, the player should seek to this position and clear it.
+  seekRequest: number | null;
 
-  // Show the full-screen Now Playing panel.
   nowPlayingOpen: boolean;
   queueOpen: boolean;
 
@@ -36,6 +33,7 @@ interface PlayerState {
   next: () => void;
   prev: () => void;
   seek: (seconds: number) => void;
+  clearSeek: () => void;
   setCurrentTime: (seconds: number) => void;
   setDuration: (seconds: number) => void;
   setBuffering: (b: boolean) => void;
@@ -46,13 +44,10 @@ interface PlayerState {
   reorderQueue: (from: number, to: number) => void;
   removeFromQueue: (index: number) => void;
   addToQueue: (track: YTMTrack, position?: "next" | "end") => void;
-  setStream: (url: string | null, source: string | null) => void;
   setNowPlayingOpen: (open: boolean) => void;
   setQueueOpen: (open: boolean) => void;
 
-  // The track currently being played (resolved from queue + index + shuffle).
   currentTrack: () => YTMTrack | null;
-  // Index in shuffle order (or normal order) for "next/prev" math.
   effectiveIndex: () => number;
   effectiveList: () => YTMTrack[];
 }
@@ -63,7 +58,6 @@ function shuffleArray(n: number, except: number): number[] {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  // Move `except` to the front so it plays first.
   const idx = arr.indexOf(except);
   if (idx > 0) {
     [arr[0], arr[idx]] = [arr[idx], arr[0]];
@@ -82,8 +76,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   duration: 0,
   volume: 0.85,
   muted: false,
-  streamUrl: null,
-  streamSource: null,
+  seekRequest: null,
   nowPlayingOpen: false,
   queueOpen: false,
 
@@ -94,8 +87,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       currentIndex: startIndex,
       isPlaying: true,
       currentTime: 0,
-      streamUrl: null,
-      streamSource: null,
+      seekRequest: null,
       shuffleOrder: get().shuffleOrder
         ? shuffleArray(tracks.length, startIndex)
         : null,
@@ -107,8 +99,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       currentIndex: index,
       isPlaying: true,
       currentTime: 0,
-      streamUrl: null,
-      streamSource: null,
+      seekRequest: null,
     });
   },
 
@@ -121,30 +112,18 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const list = effectiveList();
     const idx = effectiveIndex();
     if (repeat === "one") {
-      // Restart same track.
-      set({ currentTime: 0, streamUrl: null, streamSource: null, isPlaying: true });
+      // Loop the current track: seek to 0 and keep playing.
+      set({ seekRequest: 0, currentTime: 0, isPlaying: true });
       return;
     }
     if (idx + 1 < list.length) {
       const nextTrack = list[idx + 1];
       const nextIdx = get().queue.indexOf(nextTrack);
-      set({
-        currentIndex: nextIdx,
-        currentTime: 0,
-        streamUrl: null,
-        streamSource: null,
-        isPlaying: true,
-      });
+      set({ currentIndex: nextIdx, currentTime: 0, isPlaying: true });
     } else if (repeat === "all" && list.length) {
       const nextTrack = list[0];
       const nextIdx = get().queue.indexOf(nextTrack);
-      set({
-        currentIndex: nextIdx,
-        currentTime: 0,
-        streamUrl: null,
-        streamSource: null,
-        isPlaying: true,
-      });
+      set({ currentIndex: nextIdx, currentTime: 0, isPlaying: true });
     } else {
       set({ isPlaying: false, currentTime: 0 });
     }
@@ -152,9 +131,8 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   prev: () => {
     const { effectiveList, effectiveIndex, currentTime } = get();
-    // If we're more than 3s into the track, restart instead of going back.
     if (currentTime > 3) {
-      set({ currentTime: 0 });
+      set({ seekRequest: 0, currentTime: 0 });
       return;
     }
     const list = effectiveList();
@@ -162,19 +140,14 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     if (idx - 1 >= 0) {
       const prevTrack = list[idx - 1];
       const prevIdx = get().queue.indexOf(prevTrack);
-      set({
-        currentIndex: prevIdx,
-        currentTime: 0,
-        streamUrl: null,
-        streamSource: null,
-        isPlaying: true,
-      });
+      set({ currentIndex: prevIdx, currentTime: 0, isPlaying: true });
     } else {
-      set({ currentTime: 0 });
+      set({ seekRequest: 0, currentTime: 0 });
     }
   },
 
-  seek: (seconds) => set({ currentTime: seconds }),
+  seek: (seconds) => set({ currentTime: seconds, seekRequest: seconds }),
+  clearSeek: () => set({ seekRequest: null }),
   setCurrentTime: (seconds) => set({ currentTime: seconds }),
   setDuration: (seconds) => set({ duration: seconds }),
 
@@ -183,11 +156,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   toggleShuffle: () =>
     set((s) => {
-      if (s.shuffleOrder) {
-        // Turn shuffle off — keep playing the current track.
-        return { shuffleOrder: null };
-      }
-      // Turn shuffle on, but make the current track play first.
+      if (s.shuffleOrder) return { shuffleOrder: null };
       const cur = s.currentIndex;
       return { shuffleOrder: shuffleArray(s.queue.length, cur) };
     }),
@@ -202,12 +171,10 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       const queue = [...s.queue];
       const [moved] = queue.splice(from, 1);
       queue.splice(to, 0, moved);
-      // Keep currentIndex pointing at the same track.
       const curTrack = s.queue[s.currentIndex];
       const newIdx = queue.indexOf(curTrack);
       let shuffleOrder = s.shuffleOrder;
       if (shuffleOrder) {
-        // Rebuild shuffle order to match new queue positions.
         shuffleOrder = queue.map((_, i) => i);
         for (let i = shuffleOrder.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -239,7 +206,6 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       return { queue: [...s.queue, track] };
     }),
 
-  setStream: (url, source) => set({ streamUrl: url, streamSource: source }),
   setNowPlayingOpen: (open) => set({ nowPlayingOpen: open }),
   setQueueOpen: (open) => set({ queueOpen: open }),
 

@@ -16,6 +16,7 @@ import { AlbumView } from "@/components/views/AlbumView";
 import { ArtistView } from "@/components/views/ArtistView";
 import { LikedView, RecentlyPlayedView, PlaylistView } from "@/components/views/LibraryViews";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { ThemeApplier } from "@/components/layout/ThemeApplier";
 
 export default function Page() {
   const view = useNav((s) => s.view);
@@ -29,6 +30,7 @@ export default function Page() {
 
   return (
     <TrackMenuProvider>
+      <ThemeApplier />
       <div className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />

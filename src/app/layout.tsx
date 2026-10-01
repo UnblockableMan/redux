@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "abroad — a music player",
     description:
-      "Static, client-side YouTube Music player with glassmorphism UI and instance failover streaming.",
+      "Static, client-side YouTube Music player with glassmorphism UI and YouTube IFrame playback.",
     type: "website",
   },
 };
@@ -39,13 +39,33 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+// Inline script to apply the saved theme before hydration (prevents flash).
+const themeScript = `
+(function() {
+  try {
+    var raw = localStorage.getItem('abroad-theme');
+    var theme = 'dark';
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      theme = parsed?.state?.theme || 'dark';
+    }
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground overflow-hidden`}
       >
