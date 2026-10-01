@@ -176,7 +176,6 @@ export function BrowserView() {
       const url = normalizeUrl(raw, searchEngine);
       if (!url || !frameRef.current) return;
       setLoading(true);
-      ("first-browse");
       const newHist = [...history.slice(0, idx + 1), url];
       setHistory(newHist);
       setIdx(newHist.length - 1);
@@ -186,6 +185,28 @@ export function BrowserView() {
     },
     [history, idx, searchEngine],
   );
+
+  // Listen for "redux-browser-init" CustomEvents from the Home view (or any
+  // other view that wants to hand off a URL to the browser). This lets the
+  // home page's shortcut tiles / search bar drive the Browser view directly.
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as string;
+      if (typeof detail === "string" && detail.trim()) {
+        // Wait until the frame is ready, then navigate.
+        const tryNav = (tries = 0) => {
+          if (frameRef.current) {
+            navigate(detail);
+          } else if (tries < 20) {
+            setTimeout(() => tryNav(tries + 1), 100);
+          }
+        };
+        tryNav();
+      }
+    };
+    window.addEventListener("redux-browser-init", handler);
+    return () => window.removeEventListener("redux-browser-init", handler);
+  }, [navigate]);
 
   const back = () => {
     if (idx > 0 && frameRef.current) {

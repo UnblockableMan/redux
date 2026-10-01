@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"], style: ["normal", "italic"], weight: ["400", "500", "600", "700"] });
 
 // Build-time basePath so static-export assets (favicon) resolve on subpath hosts.
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 export const metadata: Metadata = {
   title: "redux.",
-  description: "static web proxy hub — games, music, browser, anime, extensions.",
+  description: "redux — static web proxy hub · games · music · browser · anime · cloud gaming · inspired by opium",
   icons: { icon: `${BASE_PATH}/logo.svg` },
 };
 
@@ -39,7 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <head dangerouslySetInnerHTML={{ __html: headScripts }} />
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}>
         {children}
         <Toaster />
         <SonnerToaster />
