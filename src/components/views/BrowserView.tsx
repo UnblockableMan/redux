@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ExternalLink, AlertCircle } from "lucide-react";
 import { useSettings } from "@/store/settings";
+import { withBase } from "@/lib/base";
 import { toast } from "sonner";
 
 declare global {
@@ -126,8 +127,9 @@ export function BrowserView() {
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err?.message || "Scramjet init failed");
-          toast.error("Proxy setup failed", { description: err?.message });
+          const msg = err?.message || "Scramjet init failed";
+          setError(`${msg} — if this persists, try a different wisp server in Settings → Proxy`);
+          toast.error("Proxy setup failed", { description: `${msg}. Tip: try another wisp server in Settings → Proxy.` });
         }
       }
     };
@@ -228,7 +230,7 @@ function StartPage({ onNavigate }: { onNavigate: (url: string) => void }) {
   ];
   return (
     <div className="flex h-full flex-col items-center justify-center p-8" style={{ background: "var(--bg)" }}>
-      <img src="/logo.svg" alt="redux" className="mb-4 h-12 w-12" />
+      <img src={withBase("logo.svg")} alt="redux" className="mb-4 h-12 w-12" />
       <h1 className="mb-1 text-2xl font-bold">redux browser</h1>
       <p className="mb-8 text-sm" style={{ color: "var(--text-muted)" }}>Browse the web through Scramjet. redux:// all the way.</p>
       <div className="grid grid-cols-4 gap-3">

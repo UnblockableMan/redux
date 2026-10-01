@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <rect width="100" height="100" rx="22" fill="#000000"/>
-  <path d="M28 72V28h20c8 0 14 5 14 13 0 5-3 9-7 11l9 20h-9l-8-18h-10v18h-9zm9-26h11c3 0 5-2 5-5s-2-5-5-5h-11v10z" fill="#ffffff"/>
-  <circle cx="72" cy="32" r="5" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- paper stack (cutout paper background) -->
+  <polygon points="8,12 36,5 47,15 45,35 52,45 39,59 11,55 3,39 9,24" fill="#c9c4b8"/>
+  <polygon points="7,10 35,3 46,13 44,33 51,43 38,57 10,53 2,37 8,22" fill="#f4f1e8"/>
+  <!-- black R, sharp angular cuts -->
+  <path fill="#0a0a0a" fill-rule="evenodd" d="M14 17 L33 17 L41 24 L38 33 L30 35 L42 50 L34 50 L24 37 L20 37 L20 50 L14 50 Z M20 22 L31 22 L35 26 L32 30 L20 30 Z"/>
+  <!-- x beside it -->
+  <path d="M45 33 L58 47 L54 51 L41 37 Z" fill="#0a0a0a"/>
+  <path d="M54 33 L41 47 L45 51 L58 37 Z" fill="#0a0a0a"/>
 </svg>

@@ -1,13 +1,57 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { Search, Play, ArrowLeft, X, Loader2, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Play, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/store/settings";
 
 // AniKoto API — same endpoint Lyra uses.
 const ANIKOTO_API = "https://anikotoapi.site";
-const MEGAPLAY_BASE = "https://megaply.buzz/stream/s-2";
+
+// The API sends no CORS headers, so a direct browser fetch is blocked.
+// Chain of public CORS relays (first one that answers wins) + localStorage cache.
+const CORS_PROXIES = [
+  (u: string) => u,
+  (u: string) => `https://cors.eu.org/${u}`,
+  (u: string) => `https://test.cors.workers.dev/?${u}`,
+  (u: string) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`,
+  (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+];
+
+const CACHE_PREFIX = "redux-anime-cache:";
+
+async function animeFetch(path: string): Promise<any> {
+  const target = `${ANIKOTO_API}${path}`;
+
+  // Serve from cache instantly when present (stale-while-error).
+  try {
+    const cached = localStorage.getItem(CACHE_PREFIX + path);
+    if (cached) {
+      // Refresh in the background, but return cached data right away.
+      animeFetchNetwork(target).catch(() => {});
+      return JSON.parse(cached);
+    }
+  } catch {}
+
+  const json = await animeFetchNetwork(target);
+  try { localStorage.setItem(CACHE_PREFIX + path, JSON.stringify(json)); } catch {}
+  return json;
+}
+
+async function animeFetchNetwork(target: string): Promise<any> {
+  let lastErr: any = null;
+  for (const wrap of CORS_PROXIES) {
+    try {
+      const res = await fetch(wrap(target), { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      return json;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error("All anime sources failed");
+}
 
 interface AnikotoRecentItem {
   id: string;
@@ -37,27 +81,32 @@ interface AnikotoEpisode {
   image?: string;
 }
 
+function playerUrl(ep: AnikotoEpisode, dub: boolean): string {
+  // Prefer the embed URL the API gives us (correct domain: megaplay.buzz).
+  if (ep.embed_url) return (dub ? ep.embed_url.dub : ep.embed_url.sub) || ep.embed_url.sub || ep.embed_url.dub || "";
+  // Fallback: build it (note: megaplay.buzz — the old code had "megaply" typo).
+  return `https://megaplay.buzz/stream/s-2/${ep.episode_embed_id}/${dub ? "dub" : "sub"}`;
+}
+
 export function AnimeView() {
   const unlockAchievement = useSettings((s) => s.unlockAchievement);
   const [recent, setRecent] = useState<AnikotoRecentItem[]>([]);
   const [searchResults, setSearchResults] = useState<AnikotoRecentItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [series, setSeries] = useState<AnikotoSeries | null>(null);
-  const [currentEp, setCurrentEp] = useState<{ embedId: string; title: string; ep: number } | null>(null);
+  const [currentEp, setCurrentEp] = useState<{ ep: AnikotoEpisode; title: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"browse" | "series" | "watch">("browse");
 
   useEffect(() => {
-    fetch(`${ANIKOTO_API}/recent-anime?page=1&per_page=50`)
-      .then((r) => r.json())
+    animeFetch("/recent-anime?page=1&per_page=50")
       .then((data) => {
-        // Lyra uses { data: [...] } format
         const items = data?.data || data?.results || [];
         setRecent(items);
         setLoading(false);
       })
       .catch((err) => {
-        toast.error("Failed to load anime", { description: err.message });
+        toast.error("Failed to load anime", { description: err?.message });
         setLoading(false);
       });
   }, []);
@@ -74,21 +123,25 @@ export function AnimeView() {
   const openSeries = async (id: string, title: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${ANIKOTO_API}/series/${id}`);
-      const data = await res.json();
+      const data = await animeFetch(`/series/${id}`);
       const seriesData = data?.data || data;
       setSeries({ ...seriesData, id, title: seriesData.title || title });
       setView("series");
     } catch (err: any) {
-      toast.error("Failed to load series", { description: err.message });
+      toast.error("Failed to load series", { description: err?.message });
     }
     setLoading(false);
   };
 
   const playEpisode = (ep: AnikotoEpisode, title: string) => {
-    setCurrentEp({ embedId: ep.episode_embed_id, title, ep: ep.number });
+    setCurrentEp({ ep, title });
     setView("watch");
     unlockAchievement("first-anime");
+    try {
+      const n = parseInt(localStorage.getItem("redux-anime-count") || "0", 10) + 1;
+      localStorage.setItem("redux-anime-count", String(n));
+      if (n >= 5) unlockAchievement("anime-binged");
+    } catch {}
   };
 
   if (view === "watch" && currentEp) {
@@ -177,9 +230,11 @@ export function AnimeView() {
   );
 }
 
-function AnimePlayer({ episode, onBack }: { episode: { embedId: string; title: string; ep: number }; onBack: () => void }) {
+function AnimePlayer({ episode, onBack }: { episode: { ep: AnikotoEpisode; title: string }; onBack: () => void }) {
+  const [dub, setDub] = useState(false);
   const [loading, setLoading] = useState(true);
-  const streamUrl = `${MEGAPLAY_BASE}/${episode.embedId}/sub`;
+  const [failed, setFailed] = useState(false);
+  const streamUrl = playerUrl(episode.ep, dub);
 
   return (
     <div className="fade-in flex h-full flex-col">
@@ -187,22 +242,46 @@ function AnimePlayer({ episode, onBack }: { episode: { embedId: string; title: s
         <button onClick={onBack} className="flex items-center gap-1 text-sm" style={{ color: "var(--text-muted)" }}>
           <ArrowLeft className="h-4 w-4" /> Back to series
         </button>
-        <div className="text-sm font-medium">{episode.title} — Ep {episode.ep}</div>
-        <div className="w-24" />
+        <div className="text-sm font-medium">{episode.title} — Ep {episode.ep.number}</div>
+        <div className="flex items-center gap-1 rounded-full border p-0.5" style={{ borderColor: "var(--border)" }}>
+          {(["sub", "dub"] as const).map((v) => {
+            const active = (v === "dub") === dub;
+            return (
+              <button key={v} onClick={() => { setDub(v === "dub"); setLoading(true); setFailed(false); }}
+                className="rounded-full px-2.5 py-0.5 text-xs transition-colors"
+                style={{ background: active ? "var(--accent)" : "transparent", color: active ? "var(--bg)" : "var(--text-muted)" }}>
+                {v.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="relative flex-1 bg-black">
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+        {loading && !failed && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black">
             <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent)" }} />
           </div>
         )}
+        {failed && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <p className="text-sm font-medium">This episode's host refused to load.</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Streaming hosts are aggressive about embedding. Try the SUB/DUB toggle, or open it in a new tab.
+            </p>
+            <a href={streamUrl} target="_blank" rel="noopener" className="rounded-lg border px-4 py-2 text-xs" style={{ borderColor: "var(--border)" }}>
+              Open in new tab
+            </a>
+          </div>
+        )}
         <iframe
+          key={streamUrl}
           src={streamUrl}
           className="h-full w-full border-0"
-          title={`${episode.title} - Episode ${episode.ep}`}
+          title={`${episode.title} - Episode ${episode.ep.number}`}
           allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
           onLoad={() => setLoading(false)}
+          onError={() => { setFailed(true); setLoading(false); }}
         />
       </div>
     </div>

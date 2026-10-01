@@ -6,6 +6,7 @@ import { useSettings } from "@/store/settings";
 import { ToolBar } from "@/components/ToolBar";
 import { ThemeApplier } from "@/components/ThemeApplier";
 import { HomeView } from "@/components/views/HomeView";
+import { VideoWallpaper } from "@/components/VideoWallpaper";
 import { GamesView } from "@/components/views/GamesView";
 import { MusicView } from "@/components/views/MusicView";
 import { BrowserView } from "@/components/views/BrowserView";
@@ -41,8 +42,10 @@ export default function Page() {
   return (
     <>
       <ThemeApplier />
-      <div className="flex h-dvh w-full overflow-hidden" style={{ background: "var(--bg)" }}>
-        <main id="main-scroll" className="flex-1 overflow-y-auto" style={paddingStyle}>
+      <VideoWallpaper />
+      <div className="relative flex h-dvh w-full overflow-hidden" style={{ background: "var(--bg)" }}>
+        <div className="pointer-events-none absolute inset-0 z-0" style={{ opacity: 0.88, background: "var(--bg)" }} />
+        <main id="main-scroll" className="relative z-10 flex-1 overflow-y-auto" style={paddingStyle}>
           {view === "home" && <HomeView />}
           {view === "games" && <GamesView />}
           {view === "music" && <MusicView />}

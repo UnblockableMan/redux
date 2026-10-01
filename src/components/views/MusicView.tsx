@@ -45,15 +45,20 @@ export function MusicView() {
         </form>
       </div>
 
-      {/* Spotify embed */}
-      <div className="flex-1 bg-black">
-        <iframe
-          src={embedUrl}
-          className="h-full w-full border-0"
-          title="Spotify"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
-        />
+      {/* Spotify embed — sized like a real embed card, not stretched fullscreen */}
+      <div className="flex flex-1 items-start justify-center overflow-y-auto p-6">
+        <div
+          className="w-full max-w-md overflow-hidden rounded-xl border shadow-2xl"
+          style={{ borderColor: "var(--border)", height: "352px" }}
+        >
+          <iframe
+            src={embedUrl}
+            className="h-full w-full border-0"
+            title="Spotify"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
+          />
+        </div>
       </div>
     </div>
   );

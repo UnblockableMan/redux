@@ -22,6 +22,61 @@ function resolveUrl(url: string): string {
   return url.replace("{COVER_URL}", COVER_URL).replace("{HTML_URL}", HTML_URL);
 }
 
+// jsDelivr serves these .html files as text/plain, so browsers render the
+// SOURCE CODE instead of running the game. Fix: fetch the HTML, re-type it
+// as text/html via a Blob URL, and inject a <base> so relative assets load.
+function useGameBlobUrl(game: Game | null): { url: string; error: string | null } {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!game) return;
+    const direct = resolveUrl(game.url);
+    let revoke = "";
+    let cancelled = false;
+
+    // Non-local games (already proper URLs) can go straight into the iframe.
+    if (!game.url.includes("{HTML_URL}")) {
+      setUrl(direct);
+      setError(null);
+      return;
+    }
+
+    setUrl("");
+    setError(null);
+    fetch(direct)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      })
+      .then((html) => {
+        if (cancelled) return;
+        if (!/<base\s/i.test(html)) {
+          const dir = direct.substring(0, direct.lastIndexOf("/") + 1);
+          html = /<head[^>]*>/i.test(html)
+            ? html.replace(/<head([^>]*)>/i, `<head$1><base href="${dir}">`)
+            : `<base href="${dir}">` + html;
+        }
+        const blob = new Blob([html], { type: "text/html" });
+        revoke = URL.createObjectURL(blob);
+        setUrl(revoke);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err?.message || "Failed to load game");
+          setUrl(direct); // last-ditch: try direct anyway
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
+  }, [game]);
+
+  return { url, error };
+}
+
 export function GamesView() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,6 +216,7 @@ function GameCard({ game, onPlay, onFav, isFav }: { game: Game; onPlay: () => vo
 
 function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
   const { unlockAchievement } = useSettings();
+  const { url: frameSrc, error: loadError } = useGameBlobUrl(game);
 
   // Unlock "first-game" achievement on mount.
   useEffect(() => {
@@ -169,6 +225,10 @@ function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
 
   const openAboutBlank = () => {
     // Opens the game in a new about:blank window so it can't be tab-closed easily.
+    if (!frameSrc) {
+      toast.error("Still loading", { description: "Give the game a second to load first." });
+      return;
+    }
     const win = window.open("about:blank", "_blank");
     if (!win) {
       toast.error("Popup blocked", { description: "Allow popups to use about:blank." });
@@ -177,7 +237,7 @@ function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
     win.document.write(`
       <!DOCTYPE html><html><head><title>${game.name}</title>
       <style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:0}</style>
-      </head><body><iframe src="${resolveUrl(game.url)}" allow="fullscreen;gamepad;autoplay"></iframe></body></html>
+      </head><body><iframe src="${frameSrc}" allow="fullscreen;gamepad;autoplay"></iframe></body></html>
     `);
     win.document.close();
   };
@@ -202,7 +262,14 @@ function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
         </div>
       </div>
       <div className="relative flex-1 bg-black">
-        <iframe src={resolveUrl(game.url)} className="h-full w-full border-0" title={game.name} allow="fullscreen; gamepad; autoplay; encrypted-media; pointer-lock" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock" />
+        {!frameSrc ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--accent)" }} />
+            {loadError && <span className="text-xs" style={{ color: "var(--text-muted)" }}>{loadError}</span>}
+          </div>
+        ) : (
+          <iframe src={frameSrc} className="h-full w-full border-0" title={game.name} allow="fullscreen; gamepad; autoplay; encrypted-media; pointer-lock" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock" />
+        )}
       </div>
     </div>
   );

@@ -7,10 +7,13 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+// Build-time basePath so static-export assets (favicon) resolve on subpath hosts.
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: "redux.",
   description: "static web proxy hub — games, music, browser, anime, extensions.",
-  icons: { icon: "/logo.svg" },
+  icons: { icon: `${BASE_PATH}/logo.svg` },
 };
 
 export const viewport: Viewport = {

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { X, Palette, Server, Eye, Info, Layout, Wallpaper, Puzzle, Trash2, Trophy, FileText, ClipboardList } from "lucide-react";
-import { useSettings, THEMES, WALLPAPERS, ACHIEVEMENTS, type ThemeId, type WallpaperId, type ToolbarPos } from "@/store/settings";
+import { X, Palette, Server, Eye, Info, Layout, Wallpaper, Puzzle, Trash2, Trophy, FileText, ClipboardList, Film, Ghost, Wifi } from "lucide-react";
+import { useSettings, THEMES, WALLPAPERS, VIDEO_WALLPAPERS, ACHIEVEMENTS, type ThemeId, type WallpaperId, type VideoWallpaperId, type ToolbarPos } from "@/store/settings";
 import { useNav } from "@/store/nav";
+import { withBase } from "@/lib/base";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const CLOAK_PRESETS = [
@@ -37,6 +39,42 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   const s = useSettings();
   const setView = useNav((state) => state.setView);
   const [tab, setTab] = useState<Tab>("appearance");
+  const [wispTest, setWispTest] = useState<"idle" | "testing" | "ok" | "fail">("idle");
+
+  // Open the whole app inside an about:blank cloaked window.
+  const openAboutBlank = () => {
+    const win = window.open("about:blank", "_blank");
+    if (!win) {
+      toast.error("Popup blocked", { description: "Allow popups to use about:blank." });
+      return;
+    }
+    s.unlockAchievement("about-blank");
+    const appUrl = withBase("");
+    win.document.write(`<!DOCTYPE html><html><head><title>Home</title><link rel="icon" href="https://google.com/favicon.ico" /><style>*{margin:0;padding:0;box-sizing:border-box}html,body,iframe{width:100%;height:100%;border:0;overflow:hidden;background:#000}</style></head><body><iframe src="${appUrl}" allow="fullscreen; autoplay"></iframe></body></html>`);
+    win.document.close();
+  };
+
+  // Probe a wisp server by opening a WebSocket to it.
+  const testWisp = () => {
+    if (!s.wispUrl.startsWith("wss://") && !s.wispUrl.startsWith("ws://")) {
+      toast.error("Invalid wisp URL", { description: "It should start with wss://" });
+      return;
+    }
+    setWispTest("testing");
+    s.unlockAchievement("proxy-test");
+    let settled = false;
+    try {
+      const ws = new WebSocket(s.wispUrl, "wisp");
+      const timer = setTimeout(() => {
+        if (!settled) { settled = true; ws.close(); setWispTest("fail"); }
+      }, 8000);
+      ws.onopen = () => { if (!settled) { settled = true; clearTimeout(timer); ws.close(); setWispTest("ok"); toast.success("Wisp server reachable"); } };
+      ws.onerror = () => { if (!settled) { settled = true; clearTimeout(timer); setWispTest("fail"); } };
+      ws.onclose = () => { if (!settled) { settled = true; clearTimeout(timer); setWispTest("fail"); } };
+    } catch {
+      setWispTest("fail");
+    }
+  };
 
   return (
     <>
@@ -87,6 +125,27 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                   ))}
                 </div>
               </Section>
+              <Section icon={<Film className="h-4 w-4" />} title="Video Wallpaper">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Looping video behind the UI. Sources: cineosweb.</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {VIDEO_WALLPAPERS.map((v) => (
+                    <button key={v.id} onClick={() => { s.setVideoWallpaper(v.id as VideoWallpaperId); if (v.id !== "none") s.unlockAchievement("video-wallpaper"); }} className={cn("flex flex-col items-center gap-1 rounded-lg border-2 p-2 transition-all", s.videoWallpaper === v.id ? "scale-105" : "opacity-60 hover:opacity-100")} style={{ borderColor: s.videoWallpaper === v.id ? "var(--accent)" : "transparent", background: "var(--bg)" }}>
+                      <Film className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+                      <span className="truncate text-[8px]" style={{ color: "var(--text-muted)" }}>{v.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {s.videoWallpaper === "custom" && (
+                  <input
+                    value={s.customVideoUrl}
+                    onChange={(e) => s.setCustomVideoUrl(e.target.value)}
+                    placeholder="https://example.com/background.mp4"
+                    className="mt-2 w-full rounded-lg border bg-transparent px-3 py-2 font-mono text-xs outline-none"
+                    style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                    spellCheck={false}
+                  />
+                )}
+              </Section>
               <Section icon={<Layout className="h-4 w-4" />} title="Toolbar Position">
                 <div className="grid grid-cols-4 gap-2">
                   {TOOLBAR_POSITIONS.map((p) => (
@@ -101,31 +160,61 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 
           {/* Proxy */}
           {tab === "proxy" && (
-            <Section icon={<Server className="h-4 w-4" />} title="Wisp Endpoint">
-              <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Wisp endpoint for Scramjet. Replace with your own for reliability. The proxy won't work without a running Wisp server.</p>
-              <input value={s.wispUrl} onChange={(e) => s.setWispUrl(e.target.value)} placeholder="wss://your-wisp:443" className="w-full rounded-lg border bg-transparent px-3 py-2 font-mono text-xs outline-none" style={{ borderColor: "var(--border)", color: "var(--text)" }} spellCheck={false} />
-              <p className="mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
-                Run your own: <code className="rounded px-1" style={{ background: "var(--surface2)" }}>npx @mercuryworkshop/wisp-server</code>
-              </p>
-            </Section>
+            <>
+              <Section icon={<Server className="h-4 w-4" />} title="Wisp Endpoint">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Wisp endpoint for Scramjet. If the default is blocked on your network, pick another or run your own.</p>
+                <input value={s.wispUrl} onChange={(e) => { s.setWispUrl(e.target.value); setWispTest("idle"); }} placeholder="wss://your-wisp:443" className="w-full rounded-lg border bg-transparent px-3 py-2 font-mono text-xs outline-none" style={{ borderColor: "var(--border)", color: "var(--text)" }} spellCheck={false} />
+                <div className="mt-2 flex items-center gap-2">
+                  <button onClick={testWisp} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
+                    <Wifi className="h-3.5 w-3.5" /> Test connection
+                  </button>
+                  {wispTest === "testing" && <span className="text-xs" style={{ color: "var(--text-muted)" }}>Testing…</span>}
+                  {wispTest === "ok" && <span className="text-xs" style={{ color: "#22c55e" }}>Reachable ✓</span>}
+                  {wispTest === "fail" && <span className="text-xs" style={{ color: "#ef4444" }}>Unreachable ✗</span>}
+                </div>
+                <p className="mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
+                  Run your own: <code className="rounded px-1" style={{ background: "var(--surface2)" }}>npx @mercuryworkshop/wisp-server</code>
+                </p>
+              </Section>
+              <Section icon={<Server className="h-4 w-4" />} title="Quick Presets">
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { label: "Mercury Workshop (default)", url: "wss://wisp.mercurywork.shop:443" },
+                    { label: "Custom / self-hosted", url: "" },
+                  ].map((p) => (
+                    <button key={p.label} onClick={() => { if (p.url) { s.setWispUrl(p.url); setWispTest("idle"); } }} className={cn("rounded-lg border px-3 py-2 text-left text-xs transition-all", s.wispUrl === p.url ? "border-current" : "opacity-60 hover:opacity-100")} style={{ borderColor: s.wispUrl === p.url ? "var(--accent)" : "var(--border)" }}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            </>
           )}
 
           {/* Cloak */}
           {tab === "cloak" && (
-            <Section icon={<Eye className="h-4 w-4" />} title="Tab Cloak">
-              <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Disguise this tab as another site.</p>
-              <div className="grid grid-cols-3 gap-2">
-                {CLOAK_PRESETS.map((c) => {
-                  const active = s.cloakTitle === c.title;
-                  return (
-                    <button key={c.label} onClick={() => { s.setCloak(c.title, c.icon); if (c.title) s.unlockAchievement("cloaked"); }} className={cn("flex items-center gap-1.5 rounded-lg border px-2 py-2 text-xs transition-all", active ? "border-current" : "opacity-60 hover:opacity-100")} style={{ borderColor: active ? "var(--accent)" : "var(--border)" }}>
-                      {c.icon ? <img src={c.icon} alt="" className="h-4 w-4" /> : <span className="h-4 w-4" />}
-                      <span className="truncate">{c.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </Section>
+            <>
+              <Section icon={<Eye className="h-4 w-4" />} title="Tab Cloak">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Disguise this tab as another site.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {CLOAK_PRESETS.map((c) => {
+                    const active = s.cloakTitle === c.title;
+                    return (
+                      <button key={c.label} onClick={() => { s.setCloak(c.title, c.icon); if (c.title) s.unlockAchievement("cloaked"); }} className={cn("flex items-center gap-1.5 rounded-lg border px-2 py-2 text-xs transition-all", active ? "border-current" : "opacity-60 hover:opacity-100")} style={{ borderColor: active ? "var(--accent)" : "var(--border)" }}>
+                        {c.icon ? <img src={c.icon} alt="" className="h-4 w-4" /> : <span className="h-4 w-4" />}
+                        <span className="truncate">{c.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
+              <Section icon={<Ghost className="h-4 w-4" />} title="about:blank">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Launch redux inside a blank window with no URL bar — it leaves no trace in the tab history.</p>
+                <button onClick={openAboutBlank} className="flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all hover:scale-[1.01]" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
+                  <Ghost className="h-4 w-4" /> Open redux in about:blank
+                </button>
+              </Section>
+            </>
           )}
 
           {/* Extensions */}

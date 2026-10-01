@@ -3,6 +3,7 @@
 import { BookOpen } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings } from "@/store/settings";
+import { withBase } from "@/lib/base";
 
 export function HomeView() {
   const setView = useNav((s) => s.setView);
@@ -11,7 +12,7 @@ export function HomeView() {
   return (
     <div className="fade-in flex min-h-full flex-col items-center justify-center p-8 text-center">
       {/* Logo */}
-      <img src="/logo.svg" alt="redux" className="mb-8 h-20 w-20" />
+      <img src={withBase("logo.svg")} alt="redux" className="mb-8 h-20 w-20" />
 
       {/* Title */}
       <h1 className="text-6xl font-bold tracking-tighter sm:text-7xl lg:text-8xl">

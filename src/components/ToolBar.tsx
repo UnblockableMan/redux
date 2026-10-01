@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Settings, Home, Puzzle, Trophy, FileText, ClipboardList } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
+import { withBase } from "@/lib/base";
 import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +59,7 @@ export function ToolBar() {
         >
           {/* Logo */}
           <button onClick={() => setView("home")} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-transform hover:scale-105" title="redux">
-            <img src="/logo.svg" alt="redux" className="h-7 w-7" />
+            <img src={withBase("logo.svg")} alt="redux" className="h-7 w-7" />
           </button>
 
           <div className={cn("mx-1 flex-none", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />

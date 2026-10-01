@@ -4,7 +4,23 @@ import { persist } from "zustand/middleware";
 
 export type ThemeId =
   | "jet" | "invert" | "midnight" | "blood" | "matrix" | "ocean" | "rose" | "amber"
-  | "grey" | "pastelgreen" | "lotussky" | "blvd2" | "bluedoo" | "redscar" | "yelloh" | "blackout";
+  | "grey" | "pastelgreen" | "lotussky" | "blvd2" | "bluedoo" | "redscar" | "yelloh" | "blackout"
+  | "colorfill" | "spermont" | "rainy" | "whiteout" | "greyout" | "blackandyellow" | "searingcold";
+
+export type VideoWallpaperId = "none" | "blackhole" | "rainycity" | "gojosukuna" | "minecraft" | "snowfox" | "f1" | "cozyfox" | "hunt" | "custom";
+
+export const VIDEO_WALLPAPERS: { id: VideoWallpaperId; label: string; url: string }[] = [
+  { id: "none", label: "None", url: "" },
+  { id: "blackhole", label: "Black Hole", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/BlackHole.mp4" },
+  { id: "rainycity", label: "Rainy City", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/RainyCity.mp4" },
+  { id: "gojosukuna", label: "Gojo vs Sukuna", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/Gojo-Sukuna.mp4" },
+  { id: "minecraft", label: "Minecraft", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/Minecraft01.mp4" },
+  { id: "snowfox", label: "Snow Fox", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/SnowFox.mp4" },
+  { id: "f1", label: "F-1", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/F-1.mp4" },
+  { id: "cozyfox", label: "Cozy Fox", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/CozyFox.mp4" },
+  { id: "hunt", label: "Hunt", url: "https://raw.githubusercontent.com/cineosweb/cineosweb.github.io/main/Videos/Hunt.mp4" },
+  { id: "custom", label: "Custom URL", url: "" },
+];
 
 export type ToolbarPos = "top" | "left" | "right" | "bottom";
 export type WallpaperId = "none" | "grid" | "dots" | "aurora" | "waves" | "mountains" | "gradient1" | "gradient2" | "noise" | "stars";
@@ -12,6 +28,8 @@ export type WallpaperId = "none" | "grid" | "dots" | "aurora" | "waves" | "mount
 interface Settings {
   theme: ThemeId;
   wallpaper: WallpaperId;
+  videoWallpaper: VideoWallpaperId;
+  customVideoUrl: string;
   toolbarPos: ToolbarPos;
   wispUrl: string;
   cloakTitle: string;
@@ -21,6 +39,8 @@ interface Settings {
   achievements: string[]; // unlocked achievement IDs
   setTheme: (t: ThemeId) => void;
   setWallpaper: (w: WallpaperId) => void;
+  setVideoWallpaper: (v: VideoWallpaperId) => void;
+  setCustomVideoUrl: (u: string) => void;
   setToolbarPos: (p: ToolbarPos) => void;
   setWispUrl: (u: string) => void;
   setCloak: (title: string, icon: string) => void;
@@ -58,6 +78,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "extension-added", name: "Power User", desc: "Installed an extension.", icon: "🧩" },
   { id: "setup-done", name: "All Set", desc: "Completed the setup guide.", icon: "✅" },
   { id: "10-games", name: "Game Addict", desc: "Played 10 games.", icon: "🕹️" },
+  { id: "about-blank", name: "Ghost Mode", desc: "Opened redux in about:blank.", icon: "👻" },
+  { id: "video-wallpaper", name: "Cinematic", desc: "Set a video wallpaper.", icon: "🎬" },
+  { id: "proxy-test", name: "Tunnel Vision", desc: "Tested a wisp server.", icon: "🛰️" },
+  { id: "anime-binged", name: "Binge Watcher", desc: "Watched 5 anime episodes.", icon: "🍥" },
 ];
 
 export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; text: string; textMuted: string; accent: string; border: string }[] = [
@@ -78,6 +102,14 @@ export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; 
   { id: "redscar", label: "Redscar", bg: "#100404", surface: "#180808", text: "#ffcdd2", textMuted: "#8a5a5a", accent: "#ef5350", border: "#24100e" },
   { id: "yelloh", label: "Yelloh", bg: "#141004", surface: "#1e1808", text: "#fff9c4", textMuted: "#8a8a5a", accent: "#ffeb3b", border: "#2a2410" },
   { id: "blackout", label: "Blackout", bg: "#000000", surface: "#000000", text: "#333333", textMuted: "#1a1a1a", accent: "#444444", border: "#0a0a0a" },
+  // Batch 3 — requested themes
+  { id: "colorfill", label: "Colorfill", bg: "#0e0a14", surface: "#170f24", text: "#f5e8ff", textMuted: "#9a7ab0", accent: "#e879f9", border: "#241634" },
+  { id: "spermont", label: "Spermont", bg: "#eef6f0", surface: "#dcebe1", text: "#243b2e", textMuted: "#6a8a78", accent: "#4ade80", border: "#c3d9ca" },
+  { id: "rainy", label: "Rainy", bg: "#0c1016", surface: "#141a24", text: "#c9d4e3", textMuted: "#5f6f84", accent: "#64748b", border: "#1e2836" },
+  { id: "whiteout", label: "Whiteout", bg: "#fafafa", surface: "#f0f0f0", text: "#1a1a1a", textMuted: "#777777", accent: "#2563eb", border: "#e0e0e0" },
+  { id: "greyout", label: "Grey Out", bg: "#2e2e2e", surface: "#3a3a3a", text: "#d4d4d4", textMuted: "#8a8a8a", accent: "#a3a3a3", border: "#4a4a4a" },
+  { id: "blackandyellow", label: "Black & Yellow", bg: "#0a0a04", surface: "#141208", text: "#fef08a", textMuted: "#a3a36a", accent: "#facc15", border: "#2a2408" },
+  { id: "searingcold", label: "Searing Cold", bg: "#050a0e", surface: "#0a141c", text: "#d0ecff", textMuted: "#5a7f96", accent: "#7dd3fc", border: "#12242f" },
 ];
 
 export const WALLPAPERS: { id: WallpaperId; label: string; css: string }[] = [
@@ -100,6 +132,8 @@ export const useSettings = create<Settings>()(
     (set) => ({
       theme: "jet",
       wallpaper: "grid",
+      videoWallpaper: "none",
+      customVideoUrl: "",
       toolbarPos: "top",
       wispUrl: DEFAULT_WISP,
       cloakTitle: "",
@@ -109,6 +143,8 @@ export const useSettings = create<Settings>()(
       achievements: [],
       setTheme: (theme) => set({ theme }),
       setWallpaper: (wallpaper) => set({ wallpaper }),
+      setVideoWallpaper: (videoWallpaper) => set({ videoWallpaper }),
+      setCustomVideoUrl: (customVideoUrl) => set({ customVideoUrl }),
       setToolbarPos: (toolbarPos) => set({ toolbarPos }),
       setWispUrl: (wispUrl) => set({ wispUrl }),
       setCloak: (cloakTitle, cloakIcon) => set({ cloakTitle, cloakIcon }),
