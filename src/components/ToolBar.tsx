@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Home, Puzzle, Trophy, ClipboardList } from "lucide-react";
+import { Settings, Home, Puzzle, ClipboardList } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
 import { withBase } from "@/lib/base";
@@ -29,7 +29,6 @@ export function ToolBar() {
     { id: "anime", label: "Anime", icon: BRAND_ICONS.anime },
     { id: "forms", label: "Forms", icon: ClipboardList },
     { id: "extensions", label: "Extensions", icon: Puzzle },
-    { id: "achievements", label: "Awards", icon: Trophy },
   ];
 
   const isHorizontal = toolbarPos === "top" || toolbarPos === "bottom";

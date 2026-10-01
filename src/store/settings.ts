@@ -1,4 +1,4 @@
-// Settings store — themes, wallpapers, toolbar position, proxy, tab cloak, extensions, achievements.
+// Settings store — themes, wallpapers, toolbar position, proxy, tab cloak, extensions.
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -6,7 +6,9 @@ export type ThemeId =
   | "jet" | "invert" | "midnight" | "blood" | "matrix" | "ocean" | "rose" | "amber"
   | "grey" | "pastelgreen" | "lotussky" | "blvd2" | "bluedoo" | "redscar" | "yelloh" | "blackout"
   | "colorfill" | "spermont" | "rainy" | "whiteout" | "greyout" | "blackandyellow" | "searingcold"
-  | "aurora" | "sakura" | "cyberpunk" | "vaporwave" | "forest" | "sunset" | "lavender" | "crimson" | "mint" | "cobalt";
+  | "aurora" | "sakura" | "cyberpunk" | "vaporwave" | "forest" | "sunset" | "lavender" | "crimson" | "mint" | "cobalt"
+  | "colorblind" | "inverted" | "perfection" | "gpt" | "manus" | "claude" | "skibidiohio" | "theend" | "kingyellow" | "kingblack"
+  | "neonpink" | "ghostly" | "paperwhite" | "supernova" | "ghosttown" | "crystal";
 
 export type VideoWallpaperId = "none" | "blackhole" | "rainycity" | "gojosukuna" | "minecraft" | "snowfox" | "f1" | "cozyfox" | "hunt" | "custom";
 
@@ -37,13 +39,26 @@ interface Settings {
   cloakIcon: string;
   setupDone: boolean;
   extensions: ExtDef[];
-  achievements: string[]; // unlocked achievement IDs
   // Playback settings (anime + music)
   autoSkipIntro: boolean;
   autoPlayNext: boolean;
   preferDub: boolean;
   defaultQuality: "auto" | "1080" | "720" | "480" | "360";
   searchEngine: "duckduckgo" | "google" | "bing" | "startpage" | "brave";
+  // Privacy settings
+  blockAds: boolean;
+  blockTrackers: boolean;
+  doNotTrack: boolean;
+  clearDataOnExit: boolean;
+  hideReferrer: boolean;
+  // Browser settings
+  newTabPage: "shortcuts" | "google" | "duckduckgo" | "blank" | "custom";
+  customNewTabUrl: string;
+  saveHistory: boolean;
+  // Games settings
+  gamesSource: "all" | "ubg" | "cartel";
+  // Keyboard shortcuts
+  enableKeyboardShortcuts: boolean;
   setTheme: (t: ThemeId) => void;
   setWallpaper: (w: WallpaperId) => void;
   setVideoWallpaper: (v: VideoWallpaperId) => void;
@@ -59,7 +74,16 @@ interface Settings {
   setPreferDub: (v: boolean) => void;
   setDefaultQuality: (q: "auto" | "1080" | "720" | "480" | "360") => void;
   setSearchEngine: (e: "duckduckgo" | "google" | "bing" | "startpage" | "brave") => void;
-  unlockAchievement: (id: string) => void;
+  setBlockAds: (v: boolean) => void;
+  setBlockTrackers: (v: boolean) => void;
+  setDoNotTrack: (v: boolean) => void;
+  setClearDataOnExit: (v: boolean) => void;
+  setHideReferrer: (v: boolean) => void;
+  setNewTabPage: (p: "shortcuts" | "google" | "duckduckgo" | "blank" | "custom") => void;
+  setCustomNewTabUrl: (u: string) => void;
+  setSaveHistory: (v: boolean) => void;
+  setGamesSource: (g: "all" | "ubg" | "cartel") => void;
+  setEnableKeyboardShortcuts: (v: boolean) => void;
 }
 
 export interface ExtDef {
@@ -118,32 +142,6 @@ export const STARTER_EXTENSIONS: ExtDef[] = [
   },
 ];
 
-export interface Achievement {
-  id: string;
-  name: string;
-  desc: string;
-  icon: string;
-}
-
-export const ACHIEVEMENTS: Achievement[] = [
-  { id: "first-launch", name: "Hello World", desc: "Opened redux for the first time.", icon: "👋" },
-  { id: "first-game", name: "Gamer", desc: "Played your first game.", icon: "🎮" },
-  { id: "first-song", name: "Music Lover", desc: "Searched for a song.", icon: "🎵" },
-  { id: "first-browse", name: "Explorer", desc: "Browsed a website.", icon: "🌐" },
-  { id: "first-anime", name: "Otaku", desc: "Watched an anime episode.", icon: "📺" },
-  { id: "theme-changer", name: "Stylish", desc: "Changed your theme.", icon: "🎨" },
-  { id: "wallpaper-set", name: "Interior Designer", desc: "Set a wallpaper.", icon: "🖼️" },
-  { id: "toolbar-moved", name: "Mover", desc: "Moved the toolbar.", icon: "🔀" },
-  { id: "cloaked", name: "Undercover", desc: "Enabled tab cloak.", icon: "🕵️" },
-  { id: "extension-added", name: "Power User", desc: "Installed an extension.", icon: "🧩" },
-  { id: "setup-done", name: "All Set", desc: "Completed the setup guide.", icon: "✅" },
-  { id: "10-games", name: "Game Addict", desc: "Played 10 games.", icon: "🕹️" },
-  { id: "about-blank", name: "Ghost Mode", desc: "Opened redux in about:blank.", icon: "👻" },
-  { id: "video-wallpaper", name: "Cinematic", desc: "Set a video wallpaper.", icon: "🎬" },
-  { id: "proxy-test", name: "Tunnel Vision", desc: "Tested a wisp server.", icon: "🛰️" },
-  { id: "anime-binged", name: "Binge Watcher", desc: "Watched 5 anime episodes.", icon: "🍥" },
-];
-
 export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; text: string; textMuted: string; accent: string; border: string }[] = [
   { id: "jet", label: "Jet", bg: "#000000", surface: "#0a0a0a", text: "#ffffff", textMuted: "#888888", accent: "#ffffff", border: "#1a1a1a" },
   { id: "invert", label: "Invert", bg: "#ffffff", surface: "#f0f0f0", text: "#000000", textMuted: "#666666", accent: "#000000", border: "#d0d0d0" },
@@ -181,6 +179,40 @@ export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; 
   { id: "crimson", label: "Crimson", bg: "#1a0408", surface: "#240a10", text: "#ffd0d0", textMuted: "#a05a5a", accent: "#dc2626", border: "#3a0e1a" },
   { id: "mint", label: "Mint", bg: "#04140e", surface: "#08241a", text: "#d0ffe8", textMuted: "#5aa07a", accent: "#34d399", border: "#0e3a24" },
   { id: "cobalt", label: "Cobalt", bg: "#040824", surface: "#08143a", text: "#d0e0ff", textMuted: "#5a7ab0", accent: "#2563eb", border: "#0e1e4a" },
+  // Batch 5 — 10 user-requested themes
+  // Colorblind — high-contrast, colorblind-safe palette (deuteranopia-friendly blues/yellows).
+  { id: "colorblind", label: "Colorblind", bg: "#0a0a0a", surface: "#141414", text: "#ffffff", textMuted: "#b0b0b0", accent: "#ffe600", border: "#2a2a2a" },
+  // Inverted — pure color inversion (light-on-dark swapped to dark-on-light with a twist).
+  { id: "inverted", label: "Inverted", bg: "#f8f4e8", surface: "#e8e0d0", text: "#1a1a1a", textMuted: "#5a5a5a", accent: "#8b0000", border: "#c0b896" },
+  // Perfection — pristine minimal white-on-white with subtle gold accent.
+  { id: "perfection", label: "Perfection", bg: "#fafafa", surface: "#ffffff", text: "#0a0a0a", textMuted: "#888888", accent: "#d4af37", border: "#e8e8e8" },
+  // GPT — OpenAI-inspired teal-on-charcoal.
+  { id: "gpt", label: "GPT", bg: "#0d1117", surface: "#161b22", text: "#e6edf3", textMuted: "#7d8590", accent: "#10a37f", border: "#30363d" },
+  // Manus — Manus AI brand: deep navy with electric cyan.
+  { id: "manus", label: "Manus", bg: "#0a0e1a", surface: "#111827", text: "#f0f4ff", textMuted: "#7a8aa8", accent: "#00d4ff", border: "#1e2a4a" },
+  // Claude — Anthropic's coral/peach on warm cream.
+  { id: "claude", label: "Claude", bg: "#faf6f0", surface: "#f0e8dc", text: "#3d2817", textMuted: "#8a6a4a", accent: "#d97757", border: "#e0d4c0" },
+  // Skibidi Ohio — Ohio flag colors (red/white/blue) with a meme-tint.
+  { id: "skibidiohio", label: "Skibidi Ohio", bg: "#0a0a14", surface: "#141428", text: "#ffffff", textMuted: "#a0a0c0", accent: "#ff0000", border: "#2a2a4a" },
+  // The End — apocalyptic dark with sickly green.
+  { id: "theend", label: "The End", bg: "#000000", surface: "#0a0a0a", text: "#c8c8a0", textMuted: "#6a6a4a", accent: "#7a8c3a", border: "#1a1a14" },
+  // King in Yellow — Lovecraftian gold-on-black with yellowed accents.
+  { id: "kingyellow", label: "King in Yellow", bg: "#0c0a00", surface: "#181400", text: "#fff8c4", textMuted: "#a09040", accent: "#ffd700", border: "#2a2400" },
+  // King in Black — Venom/symbiote: pure black with white vein accent.
+  { id: "kingblack", label: "King in Black", bg: "#000000", surface: "#050505", text: "#ffffff", textMuted: "#888888", accent: "#e0e0e0", border: "#1a1a1a" },
+  // Batch 6 — 6 more themes for the heavy themers
+  // Neon Pink — bright magenta on midnight.
+  { id: "neonpink", label: "Neon Pink", bg: "#0c0014", surface: "#1a0028", text: "#ffd0ff", textMuted: "#9a5ab0", accent: "#ff00cc", border: "#2a0040" },
+  // Ghostly — translucent-on-black with ethereal cyan.
+  { id: "ghostly", label: "Ghostly", bg: "#04040a", surface: "#0a0a16", text: "#c8c8e8", textMuted: "#5a5a7a", accent: "#88ccff", border: "#1a1a2a" },
+  // Paper White — warm off-white like aged paper, ink-black text.
+  { id: "paperwhite", label: "Paper White", bg: "#f4ecd8", surface: "#ebe2c8", text: "#1a1612", textMuted: "#5a4a3a", accent: "#8b3a3a", border: "#d6c8a0" },
+  // Supernova — explosive orange-red on deep purple void.
+  { id: "supernova", label: "Supernova", bg: "#0a0414", surface: "#14082a", text: "#fff0d0", textMuted: "#a05a8a", accent: "#ff6600", border: "#2a0e4a" },
+  // Ghost Town — abandoned desert town vibes, dusty browns.
+  { id: "ghosttown", label: "Ghost Town", bg: "#1a140c", surface: "#241c10", text: "#d4c0a0", textMuted: "#7a6a4a", accent: "#a67c52", border: "#3a2a14" },
+  // Crystal — faceted ice-blue on near-white frost.
+  { id: "crystal", label: "Crystal", bg: "#e0f4ff", surface: "#c8e4f4", text: "#0a2a4a", textMuted: "#5a7a9a", accent: "#0088cc", border: "#a0c8e0" },
 ];
 
 export const WALLPAPERS: { id: WallpaperId; label: string; css: string }[] = [
@@ -211,12 +243,21 @@ export const useSettings = create<Settings>()(
       cloakIcon: "",
       setupDone: false,
       extensions: [],
-      achievements: [],
       autoSkipIntro: false,
       autoPlayNext: true,
       preferDub: false,
       defaultQuality: "auto",
       searchEngine: "duckduckgo",
+      blockAds: true,
+      blockTrackers: true,
+      doNotTrack: true,
+      clearDataOnExit: false,
+      hideReferrer: true,
+      newTabPage: "shortcuts",
+      customNewTabUrl: "",
+      saveHistory: true,
+      gamesSource: "all",
+      enableKeyboardShortcuts: true,
       setTheme: (theme) => set({ theme }),
       setWallpaper: (wallpaper) => set({ wallpaper }),
       setVideoWallpaper: (videoWallpaper) => set({ videoWallpaper }),
@@ -232,9 +273,16 @@ export const useSettings = create<Settings>()(
       setPreferDub: (preferDub) => set({ preferDub }),
       setDefaultQuality: (defaultQuality) => set({ defaultQuality }),
       setSearchEngine: (searchEngine) => set({ searchEngine }),
-      unlockAchievement: (id) => set((s) => ({
-        achievements: s.achievements.includes(id) ? s.achievements : [...s.achievements, id],
-      })),
+      setBlockAds: (blockAds) => set({ blockAds }),
+      setBlockTrackers: (blockTrackers) => set({ blockTrackers }),
+      setDoNotTrack: (doNotTrack) => set({ doNotTrack }),
+      setClearDataOnExit: (clearDataOnExit) => set({ clearDataOnExit }),
+      setHideReferrer: (hideReferrer) => set({ hideReferrer }),
+      setNewTabPage: (newTabPage) => set({ newTabPage }),
+      setCustomNewTabUrl: (customNewTabUrl) => set({ customNewTabUrl }),
+      setSaveHistory: (saveHistory) => set({ saveHistory }),
+      setGamesSource: (gamesSource) => set({ gamesSource }),
+      setEnableKeyboardShortcuts: (enableKeyboardShortcuts) => set({ enableKeyboardShortcuts }),
     }),
     { name: "redux-settings" },
   ),

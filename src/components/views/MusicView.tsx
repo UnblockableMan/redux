@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Search, ExternalLink, Loader2, RefreshCw } from "lucide-react";
-import { useSettings } from "@/store/settings";
 import { toast } from "sonner";
 
 // Spotify web player shipped by the viroda1/anchor repo. GitHub raw serves
@@ -16,7 +15,6 @@ export function MusicView() {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const unlockAchievement = useSettings((s) => s.unlockAchievement);
   const blobRef = useRef<string | null>(null);
 
   // Fetch the Spotify HTML once on mount and re-wrap as a Blob URL.
@@ -108,7 +106,7 @@ export function MusicView() {
   const search = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    unlockAchievement("first-song");
+    ("first-song");
     // Open Spotify search in a new tab since the embedded player doesn't
     // accept dynamic search terms through a URL parameter.
     window.open(`https://open.spotify.com/search/${encodeURIComponent(query)}`, "_blank", "noopener");

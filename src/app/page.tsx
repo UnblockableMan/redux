@@ -13,18 +13,11 @@ import { BrowserView } from "@/components/views/BrowserView";
 import { AnimeView } from "@/components/views/AnimeView";
 import { ExtensionsView } from "@/components/views/ExtensionsView";
 import { FormsView } from "@/components/views/FormsView";
-import { AchievementsView } from "@/components/views/AchievementsView";
 import { SetupView } from "@/components/views/SetupView";
 
 export default function Page() {
   const view = useNav((s) => s.view);
   const toolbarPos = useSettings((s) => s.toolbarPos);
-  const unlockAchievement = useSettings((s) => s.unlockAchievement);
-
-  // Unlock first-launch achievement on mount.
-  useEffect(() => {
-    unlockAchievement("first-launch");
-  }, [unlockAchievement]);
 
   useEffect(() => {
     const el = document.getElementById("main-scroll");
@@ -52,7 +45,6 @@ export default function Page() {
           {view === "anime" && <AnimeView />}
           {view === "extensions" && <ExtensionsView />}
           {view === "forms" && <FormsView />}
-          {view === "achievements" && <AchievementsView />}
           {view === "setup" && <SetupView />}
         </main>
       </div>

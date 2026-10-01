@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Star, Play, X, ExternalLink, Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { useSettings } from "@/store/settings";
 
 interface Game {
   id: number;
@@ -12,11 +11,58 @@ interface Game {
   url: string;
   author?: string;
   authorLink?: string;
+  // Cartel games use a direct slug — no template substitution.
+  cartel?: boolean;
 }
 
 const GAMES_JSON = "https://cdn.jsdelivr.net/gh/bestsabplayerox/assets@main/zones.json";
 const COVER_URL = "https://cdn.jsdelivr.net/gh/bestsabplayerox/covers@main";
 const HTML_URL = "https://cdn.jsdelivr.net/gh/bestsabplayerox/html@master";
+
+// Second catalog: the 35 HTML games from UnblockableMan/Cartel.
+// Each entry maps a slug (file in Cartel/games/<slug>.html) to a human title.
+const CARTEL_GAME_URL = "https://cdn.jsdelivr.net/gh/UnblockableMan/Cartel@main/games";
+const CARTEL_GAMES: { id: number; name: string; slug: string; cover?: string }[] = [
+  { id: 9001, name: "Class of '09", slug: "09" },
+  { id: 9002, name: "3D", slug: "3d" },
+  { id: 9003, name: "3D 2", slug: "3d2" },
+  { id: 9004, name: "Lethal Ape", slug: "ape" },
+  { id: 9005, name: "Arch", slug: "arch" },
+  { id: 9006, name: "Baldi 2", slug: "baldi2" },
+  { id: 9007, name: "Bank Robbery 2", slug: "bank" },
+  { id: 9008, name: "Bart Blast", slug: "bart" },
+  { id: 9009, name: "Bhop", slug: "bhop" },
+  { id: 9010, name: "Blade Ball", slug: "blade" },
+  { id: 9011, name: "Bowmasters", slug: "bow" },
+  { id: 9012, name: "Brawl", slug: "brawl" },
+  { id: 9013, name: "CaseOh's Basics", slug: "case" },
+  { id: 9014, name: "Clash", slug: "clash" },
+  { id: 9015, name: "Baldi", slug: "crack" },
+  { id: 9016, name: "Infinite Craft", slug: "craft" },
+  { id: 9017, name: "Baldi's Ultra Decompile", slug: "decompile" },
+  { id: 9018, name: "Doki Doki Literature Club", slug: "doki" },
+  { id: 9019, name: "Frag", slug: "frag" },
+  { id: 9020, name: "Gabriel's Schoolhouse", slug: "gabe" },
+  { id: 9021, name: "Granny 2", slug: "granny2" },
+  { id: 9022, name: "Web Dashers", slug: "gweb" },
+  { id: 9023, name: "Media Player", slug: "mp3" },
+  { id: 9024, name: "R.E.P.O", slug: "repo" },
+  { id: 9025, name: "SDK", slug: "sdk" },
+  { id: 9026, name: "Slope Plus", slug: "slope" },
+  { id: 9027, name: "Snowball.IO", slug: "snow" },
+  { id: 9028, name: "Ultra", slug: "ultra" },
+  { id: 9029, name: "Us", slug: "us" },
+  { id: 9030, name: "GTA: Vice City", slug: "vice" },
+  { id: 9031, name: "W1", slug: "w1" },
+  { id: 9032, name: "W2", slug: "w2" },
+  { id: 9033, name: "W3", slug: "w3" },
+  { id: 9034, name: "Geometry Dash World", slug: "world" },
+  { id: 9035, name: "Crunchy XP", slug: "xp" },
+];
+
+function cartelGameUrl(slug: string): string {
+  return `${CARTEL_GAME_URL}/${slug}.html`;
+}
 
 function resolveUrl(url: string): string {
   return url.replace("{COVER_URL}", COVER_URL).replace("{HTML_URL}", HTML_URL);
@@ -31,12 +77,15 @@ function useGameBlobUrl(game: Game | null): { url: string; error: string | null 
 
   useEffect(() => {
     if (!game) return;
-    const direct = resolveUrl(game.url);
+    // Cartel games already point to a direct .html URL on jsDelivr, no
+    // template substitution needed. jsDelivr serves them as text/plain, so
+    // we still have to fetch + re-wrap as text/html Blob for them to run.
+    const direct = game.cartel ? game.url : resolveUrl(game.url);
     let revoke = "";
     let cancelled = false;
 
     // Non-local games (already proper URLs) can go straight into the iframe.
-    if (!game.url.includes("{HTML_URL}")) {
+    if (!game.url.includes("{HTML_URL}") && !game.cartel) {
       setUrl(direct);
       setError(null);
       return;
@@ -90,12 +139,24 @@ export function GamesView() {
       setFavorites(JSON.parse(localStorage.getItem("redux-game-favs") || "[]"));
     } catch {}
 
-    // Fetch the full games manifest (743 games)
+    // Fetch the full games manifest (743 games) AND merge in the 35 Cartel games.
     fetch(GAMES_JSON)
       .then((r) => r.json())
       .then((data: Game[]) => {
-        // Filter out the Discord promo entry (id: -1)
-        setGames(data.filter((g) => g.id >= 0));
+        const base = (Array.isArray(data) ? data : []).filter((g) => g.id >= 0);
+        // Build Cartel game entries — they have no cover image, so we ship a
+        // simple SVG thumbnail with the game's initial.
+        const cartelEntries: Game[] = CARTEL_GAMES.map((c) => ({
+          id: c.id,
+          name: c.name,
+          cover: `data:image/svg+xml,${encodeURIComponent(
+            `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%25' height='100%25' fill='%231a1a2e'/><text x='50%25' y='50%25' font-family='monospace' font-size='72' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'>${c.name.charAt(0).toUpperCase()}</text></svg>`
+          )}`,
+          url: cartelGameUrl(c.slug),
+          author: "Cartel",
+          cartel: true,
+        }));
+        setGames([...base, ...cartelEntries]);
         setLoading(false);
       })
       .catch((err) => {
@@ -215,13 +276,7 @@ function GameCard({ game, onPlay, onFav, isFav }: { game: Game; onPlay: () => vo
 }
 
 function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
-  const { unlockAchievement } = useSettings();
-  const { url: frameSrc, error: loadError } = useGameBlobUrl(game);
-
-  // Unlock "first-game" achievement on mount.
-  useEffect(() => {
-    unlockAchievement("first-game");
-  }, [unlockAchievement]);
+    const { url: frameSrc, error: loadError } = useGameBlobUrl(game);
 
   const openAboutBlank = () => {
     // Opens the game in a new about:blank window so it can't be tab-closed easily.

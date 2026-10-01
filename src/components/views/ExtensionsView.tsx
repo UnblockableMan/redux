@@ -130,7 +130,6 @@ export function ExtensionsView() {
                     return;
                   }
                   addExtension({ ...ext, id: `ext_${Date.now()}_${ext.id}` });
-                  useSettings.getState().unlockAchievement("extension-added");
                   toast.success("Extension added", { description: ext.name });
                 }}
                 className="surface flex items-center gap-3 rounded-xl border p-3 text-left transition-all hover:scale-[1.02]"
@@ -157,7 +156,6 @@ export function ExtensionsView() {
               }
             }
             if (added > 0) {
-              useSettings.getState().unlockAchievement("extension-added");
               toast.success(`Installed ${added} starter extension${added === 1 ? "" : "s"}`);
             } else {
               toast.info("All starter extensions are already installed");

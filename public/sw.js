@@ -53,6 +53,11 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 // "All clients returned an invalid MessagePort" failure (typically caused by
 // the wisp server being unreachable or refusing the connection on a school
 // network). This is the same kind of fallback chain Lyra uses.
+// Servers sourced from:
+//   - https://github.com/0800WebDev/zinc (PeteZah's huge list)
+//   - https://github.com/VortexInnovations-cyber/ghostlinkhub
+//   - https://github.com/Destroyed12121/staticsjv2 (Scramjet's reference impl)
+//   - plus the original mercurywork default
 const FALLBACK_WISP_SERVERS = [
     "wss://wisp.mercurywork.shop:443",
     "wss://wisps.proxiflux.dev:443",
@@ -61,6 +66,50 @@ const FALLBACK_WISP_SERVERS = [
     "wss://wisp-proxy.dragonuno.vercel.app:443",
     "wss://wispg0.gettoast.in:443",
     "wss://anyspeed.mercurywork.shop:443",
+    // From zinc (PeteZah's catalog):
+    "wss://petezahgames.com/wisp/",
+    "wss://bare-server.fly.dev/wisp/",
+    "wss://businessschool.cc/wisp/",
+    "wss://crypto-college.cc/wisp/",
+    "wss://fulcrumtheatreinc.com/wisp/",
+    "wss://gointospace.app/wisp/",
+    "wss://homework--spmspy0800.replit.app/wisp/",
+    "wss://homeworkhelp.cc/wisp/",
+    "wss://info.hotelsunrisegrand.com/wisp/",
+    "wss://info.shop1stoponline.com/wisp/",
+    "wss://info.videnom.com/wisp/",
+    "wss://lunar.asirargentina.com.ar/w/",
+    "wss://lunar.colegioitalocomposto.cl/w/",
+    "wss://lunar.globalscholarpress.com/w/",
+    "wss://lunar.kkmsilvia.com/w/",
+    "wss://lunaron.top/w/",
+    "wss://pgis-wisp-2.onrender.com/",
+    "wss://pgis-wisp-3.onrender.com/",
+    "wss://pgis-wisp-4.onrender.com/",
+    "wss://pgis-wisp.bonto.run/",
+    "wss://pgis-wisp.getvoroa.com/",
+    "wss://pgis-wisp.joytree.site/",
+    "wss://pgis-wisp.onrender.com/",
+    "wss://places.vjason.com/wisp/",
+    "wss://sciencenews.cc/wisp/",
+    "wss://sciencepark.cc/wisp/",
+    "wss://space.asirargentina.com.ar/wisp/",
+    "wss://space.colegioitalocomposto.cl/wisp/",
+    "wss://space.kkmsilvia.com/wisp/",
+    "wss://studyhub.asirargentina.com.ar/wisp/",
+    "wss://studyhub.colegioitalocomposto.cl/wisp/",
+    "wss://studyhub.hadtea.com/wisp/",
+    "wss://studyhub.kkmsilvia.com/wisp/",
+    "wss://triplet.bumon.ar/wisp/",
+    "wss://tungtung.asirargentina.com.ar/wisp/",
+    "wss://tungtung.best/wisp/",
+    "wss://tungtung.kkmsilvia.com/wisp/",
+    "wss://3658729.ritebooks.com/wisp/",
+    // From ghostlinkhub:
+    "wss://admin.proxy.hydrovolter.com/scramjet/wisp/",
+    "wss://glseries.net/wisp/",
+    "wss://scram.owoellen.rocks/wisp/",
+    "wss://wispserver.dev/wisp/",
 ];
 
 let wispConfig = { wispurl: null, autoswitch: true };

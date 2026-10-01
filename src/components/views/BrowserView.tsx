@@ -49,7 +49,7 @@ function normalizeUrl(input: string, engine: string = "duckduckgo"): string {
 }
 
 export function BrowserView() {
-  const { wispUrl, unlockAchievement, searchEngine } = useSettings();
+  const { wispUrl, searchEngine } = useSettings();
   const [input, setInput] = useState("");
   const [currentUrl, setCurrentUrl] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -176,7 +176,7 @@ export function BrowserView() {
       const url = normalizeUrl(raw, searchEngine);
       if (!url || !frameRef.current) return;
       setLoading(true);
-      unlockAchievement("first-browse");
+      ("first-browse");
       const newHist = [...history.slice(0, idx + 1), url];
       setHistory(newHist);
       setIdx(newHist.length - 1);
@@ -184,7 +184,7 @@ export function BrowserView() {
       setCurrentUrl(url);
       frameRef.current.go(url);
     },
-    [history, idx, unlockAchievement, searchEngine],
+    [history, idx, searchEngine],
   );
 
   const back = () => {

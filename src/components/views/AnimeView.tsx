@@ -366,7 +366,6 @@ function clearContinueWatching(anikotoId: number) {
 // ----- UI -----
 
 export function AnimeView() {
-  const unlockAchievement = useSettings((s) => s.unlockAchievement);
   const autoPlayNext = useSettings((s) => s.autoPlayNext);
   const preferDub = useSettings((s) => s.preferDub);
   const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
@@ -446,11 +445,11 @@ export function AnimeView() {
     if (!series || index < 0 || index >= series.episodes.length) return;
     setCurrentEpIndex(index);
     setView("watch");
-    unlockAchievement("first-anime");
+    ("first-anime");
     try {
       const n = parseInt(localStorage.getItem("redux-anime-count") || "0", 10) + 1;
       localStorage.setItem("redux-anime-count", String(n));
-      if (n >= 5) unlockAchievement("anime-binged");
+      if (n >= 5) ("anime-binged");
     } catch {}
   };
 
@@ -607,7 +606,7 @@ export function AnimeView() {
                           setSeriesCatalogEntry({ id: `anikoto:${cw.anikotoId}`, anikotoId: cw.anikotoId, title: cw.title, poster: cw.poster });
                           setCurrentEpIndex(idx);
                           setView("watch");
-                          unlockAchievement("first-anime");
+                          ("first-anime");
                         } catch (err: any) {
                           toast.error("Failed to load series", { description: err?.message });
                         }
