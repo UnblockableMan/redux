@@ -12,7 +12,6 @@ import { MusicView } from "@/components/views/MusicView";
 import { BrowserView } from "@/components/views/BrowserView";
 import { AnimeView } from "@/components/views/AnimeView";
 import { ExtensionsView } from "@/components/views/ExtensionsView";
-import { DocsView } from "@/components/views/DocsView";
 import { FormsView } from "@/components/views/FormsView";
 import { AchievementsView } from "@/components/views/AchievementsView";
 import { SetupView } from "@/components/views/SetupView";
@@ -52,7 +51,6 @@ export default function Page() {
           {view === "browser" && <BrowserView />}
           {view === "anime" && <AnimeView />}
           {view === "extensions" && <ExtensionsView />}
-          {view === "docs" && <DocsView />}
           {view === "forms" && <FormsView />}
           {view === "achievements" && <AchievementsView />}
           {view === "setup" && <SetupView />}

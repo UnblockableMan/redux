@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Puzzle, Trash2, Plus, Globe, Upload, ExternalLink } from "lucide-react";
-import { useSettings, type ExtDef } from "@/store/settings";
+import { Puzzle, Trash2, Plus, Globe, Upload, ExternalLink, ShieldCheck, Download } from "lucide-react";
+import { useSettings, type ExtDef, STARTER_EXTENSIONS } from "@/store/settings";
 import { toast } from "sonner";
 
 export function ExtensionsView() {
@@ -107,6 +107,67 @@ export function ExtensionsView() {
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="rounded-lg border bg-transparent px-3 py-1.5 text-xs outline-none" style={{ borderColor: "var(--border)" }} />
           <button type="submit" className="rounded-lg py-1.5 text-xs font-medium" style={{ background: "var(--accent)", color: "var(--bg)" }}>Add</button>
         </form>
+      </div>
+
+      {/* Starter extensions — pre-bundled popular privacy/ad-blocking picks */}
+      <div className="mb-8">
+        <div className="mb-3 flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4" style={{ color: "var(--accent)" }} />
+          <h2 className="text-lg font-semibold">Starter Extensions</h2>
+        </div>
+        <p className="mb-3 text-sm" style={{ color: "var(--text-muted)" }}>
+          Curated essentials — ad-blockers, dark mode, privacy. One click each, or grab them all.
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {STARTER_EXTENSIONS.map((ext) => {
+            const installed = extensions.some((e) => e.id === ext.id || (e.url && e.url.includes(ext.id.split("-")[1] || "~~~")));
+            return (
+              <button
+                key={ext.id}
+                onClick={() => {
+                  if (installed) {
+                    toast.info("Already added", { description: ext.name });
+                    return;
+                  }
+                  addExtension({ ...ext, id: `ext_${Date.now()}_${ext.id}` });
+                  useSettings.getState().unlockAchievement("extension-added");
+                  toast.success("Extension added", { description: ext.name });
+                }}
+                className="surface flex items-center gap-3 rounded-xl border p-3 text-left transition-all hover:scale-[1.02]"
+                style={{ borderColor: installed ? "var(--accent)" : "var(--border)", opacity: installed ? 0.6 : 1 }}
+              >
+                <span className="text-2xl">{ext.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{ext.name}</div>
+                  <div className="truncate text-xs" style={{ color: "var(--text-muted)" }}>{installed ? "Installed" : "Click to install"}</div>
+                </div>
+                <Plus className="h-4 w-4 flex-none" style={{ color: installed ? "var(--text-muted)" : "var(--accent)" }} />
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => {
+            const installedUrls = new Set(extensions.map((e) => e.url));
+            let added = 0;
+            for (const ext of STARTER_EXTENSIONS) {
+              if (!installedUrls.has(ext.url)) {
+                addExtension({ ...ext, id: `ext_${Date.now()}_${ext.id}_${Math.random().toString(36).slice(2, 6)}` });
+                added++;
+              }
+            }
+            if (added > 0) {
+              useSettings.getState().unlockAchievement("extension-added");
+              toast.success(`Installed ${added} starter extension${added === 1 ? "" : "s"}`);
+            } else {
+              toast.info("All starter extensions are already installed");
+            }
+          }}
+          className="mt-3 flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:surface2"
+          style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+        >
+          <Download className="h-4 w-4" /> Install all starter extensions
+        </button>
       </div>
 
       {/* Installed extensions */}

@@ -95,6 +95,7 @@ export function BrowserView() {
           const reg = await navigator.serviceWorker.register(basePath + "sw.js", { scope: basePath });
           await navigator.serviceWorker.ready;
 
+          // Helper: post the config message to whichever SW is in charge.
           const sendConfig = () => {
             const sw = reg.active || navigator.serviceWorker.controller;
             if (sw) sw.postMessage({ type: "config", wispurl: wispUrl });
@@ -102,6 +103,20 @@ export function BrowserView() {
           sendConfig();
           setTimeout(sendConfig, 500);
           setTimeout(sendConfig, 1500);
+          // Also re-send whenever a new SW takes over (e.g. after a refresh).
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            setTimeout(sendConfig, 100);
+          });
+          // Listen for wisp-fallback notifications from the SW so we can
+          // surface a toast telling the user which fallback is active.
+          navigator.serviceWorker.addEventListener("message", (ev) => {
+            const data = ev.data || {};
+            if (data.type === "wisp-fallback" && data.url) {
+              toast.info("Wisp fallback in use", {
+                description: `Connected via ${data.url} (default was unreachable).`,
+              });
+            }
+          });
         }
 
         scramjetRef.current = controller;

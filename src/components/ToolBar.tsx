@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Home, Puzzle, Trophy, FileText, ClipboardList } from "lucide-react";
+import { Settings, Home, Puzzle, Trophy, ClipboardList } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
 import { withBase } from "@/lib/base";
@@ -27,7 +27,6 @@ export function ToolBar() {
     { id: "music", label: "Music", icon: BRAND_ICONS.music },
     { id: "browser", label: "Browser", icon: BRAND_ICONS.browser },
     { id: "anime", label: "Anime", icon: BRAND_ICONS.anime },
-    { id: "docs", label: "Docs", icon: FileText },
     { id: "forms", label: "Forms", icon: ClipboardList },
     { id: "extensions", label: "Extensions", icon: Puzzle },
     { id: "achievements", label: "Awards", icon: Trophy },

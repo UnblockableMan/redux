@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Palette, Server, Eye, Info, Layout, Wallpaper, Puzzle, Trash2, Trophy, FileText, ClipboardList, Film, Ghost, Wifi } from "lucide-react";
+import { X, Palette, Server, Eye, Info, Layout, Wallpaper, Puzzle, Trash2, Trophy, ClipboardList, Film, Ghost, Wifi, RotateCcw, Database, Search } from "lucide-react";
 import { useSettings, THEMES, WALLPAPERS, VIDEO_WALLPAPERS, ACHIEVEMENTS, type ThemeId, type WallpaperId, type VideoWallpaperId, type ToolbarPos } from "@/store/settings";
 import { useNav } from "@/store/nav";
 import { withBase } from "@/lib/base";
@@ -24,10 +24,11 @@ const TOOLBAR_POSITIONS: { id: ToolbarPos; label: string }[] = [
   { id: "bottom", label: "Bottom" },
 ];
 
-type Tab = "appearance" | "proxy" | "cloak" | "extensions" | "achievements" | "more";
+type Tab = "appearance" | "proxy" | "cloak" | "extensions" | "achievements" | "playback" | "more";
 
 const TABS: { id: Tab; label: string; icon: typeof Palette }[] = [
   { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "playback", label: "Playback", icon: Film },
   { id: "proxy", label: "Proxy", icon: Server },
   { id: "cloak", label: "Cloak", icon: Eye },
   { id: "extensions", label: "Extensions", icon: Puzzle },
@@ -106,6 +107,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
           {tab === "appearance" && (
             <>
               <Section icon={<Palette className="h-4 w-4" />} title="Theme">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>{THEMES.length} themes — pick your vibe.</p>
                 <div className="grid grid-cols-4 gap-2">
                   {THEMES.map((t) => (
                     <button key={t.id} onClick={() => { s.setTheme(t.id as ThemeId); s.unlockAchievement("theme-changer"); }} className={cn("flex flex-col items-center gap-1 rounded-lg border-2 p-2 transition-all", s.theme === t.id ? "scale-105" : "opacity-60 hover:opacity-100")} style={{ borderColor: s.theme === t.id ? t.accent : "transparent", background: t.bg }} title={t.label}>
@@ -151,6 +153,86 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                   {TOOLBAR_POSITIONS.map((p) => (
                     <button key={p.id} onClick={() => { s.setToolbarPos(p.id); s.unlockAchievement("toolbar-moved"); }} className={cn("rounded-lg border py-2 text-xs transition-all", s.toolbarPos === p.id ? "scale-105" : "opacity-60 hover:opacity-100")} style={{ borderColor: s.toolbarPos === p.id ? "var(--accent)" : "var(--border)", background: s.toolbarPos === p.id ? "var(--surface2)" : "transparent", color: s.toolbarPos === p.id ? "var(--accent)" : "var(--text-muted)" }}>
                       {p.label}
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            </>
+          )}
+
+          {/* Playback */}
+          {tab === "playback" && (
+            <>
+              <Section icon={<Film className="h-4 w-4" />} title="Anime Playback">
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border)" }}>
+                  <span>
+                    <div className="font-medium">Auto-skip intro</div>
+                    <div className="text-xs" style={{ color: "var(--text-muted)" }}>Jump past the opening automatically when available.</div>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={s.autoSkipIntro}
+                    onChange={(e) => s.setAutoSkipIntro(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                </label>
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border)" }}>
+                  <span>
+                    <div className="font-medium">Auto-play next episode</div>
+                    <div className="text-xs" style={{ color: "var(--text-muted)" }}>Show a "Play next" card at the end of each episode.</div>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={s.autoPlayNext}
+                    onChange={(e) => s.setAutoPlayNext(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                </label>
+                <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border p-3 text-sm" style={{ borderColor: "var(--border)" }}>
+                  <span>
+                    <div className="font-medium">Prefer dub</div>
+                    <div className="text-xs" style={{ color: "var(--text-muted)" }}>Default to English dub when available (toggle still appears in player).</div>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={s.preferDub}
+                    onChange={(e) => s.setPreferDub(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                </label>
+              </Section>
+              <Section icon={<Search className="h-4 w-4" />} title="Default Search Engine">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Used by the Browser start page and the address bar.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: "duckduckgo", label: "DuckDuckGo", url: "https://duckduckgo.com" },
+                    { id: "google", label: "Google", url: "https://google.com" },
+                    { id: "bing", label: "Bing", url: "https://bing.com" },
+                    { id: "startpage", label: "Startpage", url: "https://startpage.com" },
+                    { id: "brave", label: "Brave", url: "https://search.brave.com" },
+                  ] as const).map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => s.setSearchEngine(e.id)}
+                      className={cn("rounded-lg border px-3 py-2 text-xs transition-all", s.searchEngine === e.id ? "scale-105" : "opacity-60 hover:opacity-100")}
+                      style={{ borderColor: s.searchEngine === e.id ? "var(--accent)" : "var(--border)" }}
+                    >
+                      {e.label}
+                    </button>
+                  ))}
+                </div>
+              </Section>
+              <Section icon={<Film className="h-4 w-4" />} title="Default Quality">
+                <p className="mb-2 text-xs" style={{ color: "var(--text-muted)" }}>Used by the anime player when the host exposes quality options.</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {(["auto", "1080", "720", "480", "360"] as const).map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => s.setDefaultQuality(q)}
+                      className={cn("rounded-lg border py-2 text-xs uppercase transition-all", s.defaultQuality === q ? "scale-105" : "opacity-60 hover:opacity-100")}
+                      style={{ borderColor: s.defaultQuality === q ? "var(--accent)" : "var(--border)" }}
+                    >
+                      {q}
                     </button>
                   ))}
                 </div>
@@ -261,11 +343,43 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
           {tab === "more" && (
             <>
               <Section icon={<Info className="h-4 w-4" />} title="Quick Links">
-                <button onClick={() => { setView("docs"); onClose(); }} className="mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
-                  <FileText className="h-4 w-4" /> Open Google Doc
-                </button>
                 <button onClick={() => { setView("forms"); onClose(); }} className="mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
                   <ClipboardList className="h-4 w-4" /> Open Google Form
+                </button>
+                <button onClick={() => { setView("extensions"); onClose(); }} className="mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
+                  <Puzzle className="h-4 w-4" /> Manage Extensions
+                </button>
+              </Section>
+              <Section icon={<Database className="h-4 w-4" />} title="Data">
+                <button
+                  onClick={() => {
+                    if (confirm("Clear all locally cached anime data? This won't affect your settings or favorites.")) {
+                      Object.keys(localStorage).filter((k) => k.startsWith("redux-anime-cache:")).forEach((k) => localStorage.removeItem(k));
+                      toast.success("Anime cache cleared");
+                    }
+                  }}
+                  className="mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:surface2"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <Database className="h-4 w-4" /> Clear anime cache
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm("Reset ALL redux settings to defaults? This includes themes, extensions, achievements, and proxy config.")) {
+                      try {
+                        localStorage.removeItem("redux-settings");
+                        Object.keys(localStorage).filter((k) => k.startsWith("redux-")).forEach((k) => localStorage.removeItem(k));
+                        toast.success("Settings reset", { description: "Reload to apply." });
+                        setTimeout(() => location.reload(), 800);
+                      } catch (err: any) {
+                        toast.error("Reset failed", { description: err?.message });
+                      }
+                    }
+                  }}
+                  className="mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:surface2"
+                  style={{ borderColor: "#ef4444", color: "#ef4444" }}
+                >
+                  <RotateCcw className="h-4 w-4" /> Reset all settings
                 </button>
               </Section>
               <Section icon={<Info className="h-4 w-4" />} title="Setup">
@@ -274,9 +388,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
               </Section>
               <Section icon={<Info className="h-4 w-4" />} title="About">
                 <div className="rounded-lg p-3 text-xs" style={{ background: "var(--bg)" }}>
-                  <div className="font-semibold">redux v3.0</div>
+                  <div className="font-semibold">redux v3.1</div>
                   <div style={{ color: "var(--text-muted)" }}>static web proxy hub</div>
-                  <div className="mt-1" style={{ color: "var(--text-muted)" }}>Scramjet · BareMux · Wisp</div>
+                  <div className="mt-1" style={{ color: "var(--text-muted)" }}>Scramjet · BareMux · Wisp · AniList</div>
                 </div>
               </Section>
             </>

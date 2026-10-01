@@ -48,9 +48,26 @@ const scramjet = new ScramjetServiceWorker({
 self.addEventListener('install',  () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
+// Known public wisp servers. The first one in the array is the user-configured
+// default; the rest are tried in order if the active transport reports an
+// "All clients returned an invalid MessagePort" failure (typically caused by
+// the wisp server being unreachable or refusing the connection on a school
+// network). This is the same kind of fallback chain Lyra uses.
+const FALLBACK_WISP_SERVERS = [
+    "wss://wisp.mercurywork.shop:443",
+    "wss://wisps.proxiflux.dev:443",
+    "wss://wisp.mercurywork.shop:443",
+    "wss://comet.librey.tech:443",
+];
+
 let wispConfig = { wispurl: null, autoswitch: true };
 let resolveConfigReady;
 const configReadyPromise = new Promise(resolve => resolveConfigReady = resolve);
+
+// Connection state — used to retry the next fallback after a MessagePort error.
+let currentTransport = null;
+let currentTransportUrl = null;
+let lastErrorWasMessagePort = false;
 
 self.addEventListener("message", ({ data }) => {
     if (data.type === "config") {
@@ -58,7 +75,52 @@ self.addEventListener("message", ({ data }) => {
         if (typeof data.autoswitch !== 'undefined') wispConfig.autoswitch = data.autoswitch;
         if (wispConfig.wispurl && resolveConfigReady) { resolveConfigReady(); resolveConfigReady = null; }
     }
+    if (data.type === "get-status") {
+        // Allow the page to query SW status for diagnostics.
+        const clients = self.clients;
+        (async () => {
+            const allClients = await clients.matchAll({ includeUncontrolled: true });
+            for (const c of allClients) {
+                c.postMessage({
+                    type: "status",
+                    wispUrl: wispConfig.wispurl,
+                    transportUrl: currentTransportUrl,
+                    hadMessagePortError: lastErrorWasMessagePort,
+                });
+            }
+        })();
+    }
 });
+
+// Build the fallback chain: user-configured wisp first (if set), then the
+// remaining defaults. We de-dupe so the user's choice isn't tried twice.
+function buildWispChain() {
+    const chain = [];
+    if (wispConfig.wispurl) chain.push(wispConfig.wispurl);
+    for (const w of FALLBACK_WISP_SERVERS) {
+        if (!chain.includes(w)) chain.push(w);
+    }
+    return chain;
+}
+
+async function setTransportForUrl(wispUrl) {
+    if (!self.BareMux) {
+        throw new Error("BareMux not loaded in SW context");
+    }
+    // Re-create the connection each time so a stale worker doesn't keep
+    // holding a broken MessagePort. This is the fix for "All clients
+    // returned an invalid MessagePort" — usually caused by a stale
+    // BareMuxConnection whose underlying SharedWorker died.
+    const connection = new BareMux.BareMuxConnection(basePath + "bareworker.js");
+    await connection.setTransport(
+        "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs",
+        [{ wisp: wispUrl }]
+    );
+    currentTransport = connection;
+    currentTransportUrl = wispUrl;
+    lastErrorWasMessagePort = false;
+    return connection;
+}
 
 self.addEventListener("fetch", (event) => {
     event.respondWith((async () => {
@@ -78,24 +140,56 @@ scramjet.addEventListener("request", async (e) => {
         await configReadyPromise;
         if (!wispConfig.wispurl) return new Response("Wisp URL not configured", { status: 500 });
 
-        if (!scramjet.client) {
-            const connection = new BareMux.BareMuxConnection(basePath + "bareworker.js");
-            await connection.setTransport(
-                "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs",
-                [{ wisp: wispConfig.wispurl }]
-            );
-            scramjet.client = connection;
+        // If we already have a working transport, try it first.
+        let connection = currentTransport;
+        if (!connection) {
+            connection = await setTransportForUrl(wispConfig.wispurl);
         }
 
-        return await scramjet.client.fetch(e.url, {
-            method: e.method,
-            body: e.body,
-            headers: e.requestHeaders,
-            credentials: "include",
-            mode: e.mode === "cors" ? e.mode : "same-origin",
-            cache: e.cache,
-            redirect: "manual",
-            duplex: "half",
-        });
+        const tryFetch = async (conn) => {
+            return await conn.fetch(e.url, {
+                method: e.method,
+                body: e.body,
+                headers: e.requestHeaders,
+                credentials: "include",
+                mode: e.mode === "cors" ? e.mode : "same-origin",
+                cache: e.cache,
+                redirect: "manual",
+                duplex: "half",
+            });
+        };
+
+        try {
+            return await tryFetch(connection);
+        } catch (err) {
+            const msg = String(err?.message || err || "");
+            // The "invalid MessagePort" failure happens when the underlying
+            // SharedWorker can't postMessage. Retry with fallbacks.
+            if (/MessagePort|invalid|transport|connection|network|fetch/i.test(msg)) {
+                lastErrorWasMessagePort = /MessagePort|invalid/i.test(msg);
+                const chain = buildWispChain().filter((u) => u !== currentTransportUrl);
+                for (const candidate of chain) {
+                    try {
+                        const next = await setTransportForUrl(candidate);
+                        const res = await tryFetch(next);
+                        // It worked — promote this transport.
+                        currentTransport = next;
+                        currentTransportUrl = candidate;
+                        // Notify the page so it can update the UI.
+                        const clients = await self.clients.matchAll({ includeUncontrolled: true });
+                        for (const c of clients) {
+                            c.postMessage({ type: "wisp-fallback", url: candidate });
+                        }
+                        return res;
+                    } catch (nextErr) {
+                        // Try the next fallback.
+                        continue;
+                    }
+                }
+                // All fallbacks failed — surface the original error.
+                throw err;
+            }
+            throw err;
+        }
     })();
 });
