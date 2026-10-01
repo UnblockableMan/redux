@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "redux.",
-  description: "static web proxy hub — games, music, browser, anime.",
+  description: "static web proxy hub — games, music, browser, anime, extensions.",
   icons: { icon: "/logo.svg" },
 };
 

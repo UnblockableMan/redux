@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSettings, THEMES } from "@/store/settings";
+import { useSettings, THEMES, WALLPAPERS } from "@/store/settings";
 
 export function ThemeApplier() {
   const theme = useSettings((s) => s.theme);
+  const wallpaper = useSettings((s) => s.wallpaper);
   const cloakTitle = useSettings((s) => s.cloakTitle);
   const cloakIcon = useSettings((s) => s.cloakIcon);
 
@@ -19,6 +20,11 @@ export function ThemeApplier() {
     root.style.setProperty("--accent", t.accent);
     root.style.setProperty("--border", t.border);
   }, [theme]);
+
+  useEffect(() => {
+    const w = WALLPAPERS.find((x) => x.id === wallpaper) ?? WALLPAPERS[0];
+    document.body.setAttribute("style", w.css);
+  }, [wallpaper]);
 
   useEffect(() => {
     document.title = cloakTitle || "redux.";

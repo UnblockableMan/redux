@@ -1,43 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { X, Menu, Settings, Home } from "lucide-react";
+import { X, Menu, Settings, Home, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Puzzle } from "lucide-react";
 import { useNav } from "@/store/nav";
-import { useSettings } from "@/store/settings";
+import { useSettings, type ToolbarPos } from "@/store/settings";
 import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
-// Brand icons — loaded as images from CDNs.
+// Brand icons loaded from CDNs.
 const BRAND_ICONS = {
   music: "https://commons.wikimedia.org/wiki/Special:FilePath/Spotify_App_Logo.svg?width=128",
   games: "https://cdn.simpleicons.org/playstation/white",
   browser: "https://www.google.com/chrome/static/images/chrome-logo.svg",
-  anime: "https://cdn.simpleicons.org/crunchroll/white",
+  anime: "https://cdn.simpleicons.org/crunchyroll/orange",
 } as const;
 
 export function ToolBar() {
   const view = useNav((s) => s.view);
   const setView = useNav((s) => s.setView);
-  const toolbarOpen = useSettings((s) => s.toolbarOpen);
-  const setToolbarOpen = useSettings((s) => s.setToolbarOpen);
+  const toolbarPos = useSettings((s) => s.toolbarPos);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  if (!toolbarOpen) {
-    return (
-      <>
-        <button
-          onClick={() => setToolbarOpen(true)}
-          className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border bg-black/80 backdrop-blur-md transition-all hover:scale-105"
-          style={{ borderColor: "var(--border)" }}
-          aria-label="Open toolbar"
-        >
-          <Menu className="h-5 w-5" style={{ color: "var(--text)" }} />
-        </button>
-        <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-        <SettingsButton onClick={() => setSettingsOpen(true)} />
-      </>
-    );
-  }
 
   const items: { id: typeof view; label: string; icon: string | typeof Home }[] = [
     { id: "home", label: "Home", icon: Home },
@@ -45,28 +27,42 @@ export function ToolBar() {
     { id: "music", label: "Music", icon: BRAND_ICONS.music },
     { id: "browser", label: "Browser", icon: BRAND_ICONS.browser },
     { id: "anime", label: "Anime", icon: BRAND_ICONS.anime },
+    { id: "extensions", label: "Extensions", icon: Puzzle },
   ];
+
+  // Close/hide button — uses the toolbar's position to pick an arrow.
+  const CloseIcon = { top: ChevronUp, left: ChevronLeft, right: ChevronRight, bottom: ChevronDown }[toolbarPos];
+  const isHorizontal = toolbarPos === "top" || toolbarPos === "bottom";
+
+  // Position styles.
+  const containerStyle: React.CSSProperties = {
+    position: "fixed",
+    zIndex: 50,
+    ...(toolbarPos === "top" && { top: "1rem", left: "50%", transform: "translateX(-50%)" }),
+    ...(toolbarPos === "bottom" && { bottom: "1rem", left: "50%", transform: "translateX(-50%)" }),
+    ...(toolbarPos === "left" && { left: "1rem", top: "50%", transform: "translateY(-50%)" }),
+    ...(toolbarPos === "right" && { right: "1rem", top: "50%", transform: "translateY(-50%)" }),
+  };
 
   return (
     <>
-      <div className="fixed top-4 left-1/2 z-50 -translate-x-1/2">
+      <div style={containerStyle}>
         <div
-          className="flex items-center gap-1 rounded-2xl border p-1.5 shadow-2xl backdrop-blur-2xl"
+          className={cn(
+            "flex items-center gap-1 rounded-2xl border p-1.5 shadow-2xl backdrop-blur-2xl",
+            !isHorizontal && "flex-col",
+          )}
           style={{
             borderColor: "var(--border)",
             background: "color-mix(in srgb, var(--surface) 90%, transparent)",
           }}
         >
           {/* Logo */}
-          <button
-            onClick={() => setView("home")}
-            className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-transform hover:scale-105"
-            title="redux"
-          >
+          <button onClick={() => setView("home")} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-transform hover:scale-105" title="redux">
             <img src="/logo.svg" alt="redux" className="h-7 w-7" />
           </button>
 
-          <div className="mx-1 h-7 w-px" style={{ background: "var(--border)" }} />
+          <div className={cn("mx-1", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
 
           {/* App icons */}
           {items.map((item) => {
@@ -76,12 +72,8 @@ export function ToolBar() {
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className={cn(
-                  "group relative flex h-9 w-9 items-center justify-center rounded-xl transition-all",
-                )}
-                style={{
-                  background: active ? "var(--accent)" : "transparent",
-                }}
+                className="group relative flex h-9 w-9 items-center justify-center rounded-xl transition-all"
+                style={{ background: active ? "var(--accent)" : "transparent" }}
                 title={item.label}
                 aria-label={item.label}
               >
@@ -92,57 +84,44 @@ export function ToolBar() {
                     className={cn(
                       "h-5 w-5 transition-all",
                       item.id === "browser" && "rounded-full",
-                      active && item.id !== "browser" && "invert",
+                      active && item.id !== "browser" && item.id !== "anime" && "invert",
+                      active && item.id === "anime" && "invert",
                     )}
                   />
                 ) : (
-                  <Home
-                    className="h-5 w-5"
-                    style={{ color: active ? "var(--bg)" : "var(--text)" }}
-                  />
+                  (() => {
+                    const Icon = item.icon as typeof Home;
+                    return <Icon className="h-5 w-5" style={{ color: active ? "var(--bg)" : "var(--text)" }} />;
+                  })()
                 )}
+                {/* Tooltip */}
+                <span
+                  className={cn(
+                    "pointer-events-none absolute z-50 whitespace-nowrap rounded-md px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100",
+                    toolbarPos === "top" && "top-full mt-2 left-1/2 -translate-x-1/2",
+                    toolbarPos === "bottom" && "bottom-full mb-2 left-1/2 -translate-x-1/2",
+                    toolbarPos === "left" && "left-full ml-2 top-1/2 -translate-y-1/2",
+                    toolbarPos === "right" && "right-full mr-2 top-1/2 -translate-y-1/2",
+                  )}
+                  style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                >
+                  {item.label}
+                </span>
               </button>
             );
           })}
 
-          <div className="mx-1 h-7 w-px" style={{ background: "var(--border)" }} />
+          <div className={cn("mx-1", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
 
           {/* Settings */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:surface2"
-            title="Settings"
-            aria-label="Settings"
-          >
+          <button onClick={() => setSettingsOpen(true)} className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:surface2" title="Settings" aria-label="Settings">
             <Settings className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
-          </button>
-
-          {/* Close toolbar */}
-          <button
-            onClick={() => setToolbarOpen(false)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:surface2"
-            title="Hide toolbar"
-            aria-label="Hide toolbar"
-          >
-            <X className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
           </button>
         </div>
       </div>
 
+      {/* Floating reopen button (always visible, opens settings when toolbar hidden) */}
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
-  );
-}
-
-function SettingsButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border bg-black/80 backdrop-blur-md transition-all hover:scale-105"
-      style={{ borderColor: "var(--border)" }}
-      aria-label="Settings"
-    >
-      <Settings className="h-5 w-5" style={{ color: "var(--text)" }} />
-    </button>
   );
 }
