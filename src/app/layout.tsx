@@ -12,8 +12,8 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 export const metadata: Metadata = {
-  title: "redux.",
-  description: "redux — static web proxy hub · games · music · browser · anime · cloud gaming · inspired by opium",
+  title: "redux",
+  description: "redux static web proxy hub games music browser anime cloud gaming inspired by opium",
   icons: { icon: `${BASE_PATH}/logo.svg` },
 };
 
@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Scripts that must load before the app — Scramjet proxy dependencies.
+// Scripts that must load before the app — Scramjet proxy dependencies + chat.
 const headScripts = `
 <script src="https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.all.js" defer></script>
 <script type="module">
@@ -36,6 +36,22 @@ const headScripts = `
 <link rel="preconnect" href="https://graphql.anilist.co" crossorigin />
 `;
 
+// Chat widget — widgetbot Crate. Loads after the page so the rest of the
+// app boots first. The Crate button appears in the bottom-right corner.
+const chatScript = `
+<script src="https://cdn.jsdelivr.net/npm/@widgetbot/crate@3" async defer></script>
+<script>
+  window.addEventListener('load', function () {
+    if (typeof Crate === 'undefined') {
+      // Retry once the script has had a moment to load.
+      setTimeout(arguments.callee, 500);
+      return;
+    }
+    new Crate({ server: '1554247947649028188' });
+  });
+</script>
+`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -44,6 +60,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <Toaster />
         <SonnerToaster />
+        <div dangerouslySetInnerHTML={{ __html: chatScript }} />
       </body>
     </html>
   );

@@ -9,10 +9,10 @@ import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
 const BRAND_ICONS = {
-  music: "https://open.spotify.com/favicon.ico",
-  games: "https://playstation.com/favicon.ico",
-  browser: "https://www.google.com/chrome/static/images/chrome-logo.svg",
-  anime: "https://www.crunchyroll.com/favicon.ico",
+  music: "https://icons.duckduckgo.com/ip3/open.spotify.com.ico",
+  games: "https://icons.duckduckgo.com/ip3/playstation.com.ico",
+  browser: "https://icons.duckduckgo.com/ip3/google.com.ico",
+  anime: "https://icons.duckduckgo.com/ip3/crunchyroll.com.ico",
 } as const;
 
 export function ToolBar() {

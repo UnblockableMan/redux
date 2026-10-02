@@ -125,8 +125,31 @@ export function BrowserView() {
           navigator.serviceWorker.addEventListener("controllerchange", () => {
             setTimeout(sendConfig, 100);
           });
-          // Listen for wisp-fallback notifications from the SW so we can
-          // surface a toast telling the user which fallback is active.
+
+          // Pre-flight: actually open a WebSocket to the wisp server and
+          // wait for it to connect (or fail) before we let the user try
+          // to navigate. The previous code just sent the config message
+          // and immediately allowed navigation — which meant the user
+          // would see a white screen for ~5 seconds while the SW tried
+          // to set up the transport. Now we surface a "Connecting to
+          // wisp..." status while the test runs.
+          try {
+            await new Promise<void>((resolve, reject) => {
+              const ws = new WebSocket(wispUrl, "wisp");
+              const timer = setTimeout(() => {
+                ws.close();
+                reject(new Error("wisp timeout"));
+              }, 8000);
+              ws.onopen = () => { clearTimeout(timer); ws.close(); resolve(); };
+              ws.onerror = () => { clearTimeout(timer); reject(new Error("wisp refused")); };
+            });
+          } catch (testErr: any) {
+            // The default wisp is unreachable — surface a clear error
+            // and let the SW fallback chain kick in on first navigation.
+            setError(`Default wisp unreachable (${testErr.message}). Trying fallbacks on next request — pick another in Settings → Proxy.`);
+          }
+
+          // Listen for wisp-fallback notifications from the SW.
           navigator.serviceWorker.addEventListener("message", (ev) => {
             const data = ev.data || {};
             if (data.type === "wisp-fallback" && data.url) {
@@ -342,10 +365,31 @@ export function BrowserView() {
         {currentUrl && <button onClick={openExternal} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Open in new tab"><ExternalLink className="h-4 w-4" /></button>}
       </div>
 
-      {/* Status */}
+      {/* Status — branded redux loading bar. Replaces the bland "Starting
+          Scramjet proxy…" text with a styled status row showing the redux
+          wordmark + the current step (proxy boot, wisp test, etc.). */}
       {!ready && (
-        <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs" style={{ borderColor: "var(--border)", color: error ? "#ef4444" : "var(--text-muted)" }}>
-          {error ? <><AlertCircle className="h-3 w-3" /> {error}</> : <><div className="h-3 w-3 spin-slow rounded-full border" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} /> Starting Scramjet proxy…</>}
+        <div className="border-b px-3 py-2 text-xs" style={{ borderColor: "var(--border)", background: "var(--surface)", color: error ? "#ef4444" : "var(--text-muted)" }}>
+          <div className="flex items-center gap-2">
+            {error ? (
+              <>
+                <AlertCircle className="h-3.5 w-3.5 flex-none" />
+                <span className="truncate">{error}</span>
+              </>
+            ) : (
+              <>
+                <div className="h-3 w-3 spin-slow rounded-full border-2 flex-none" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
+                <span className="font-mono" style={{ color: "var(--accent)" }}>redux</span>
+                <span>booting scramjet + wisp transport…</span>
+              </>
+            )}
+          </div>
+          {!error && (
+            <div className="mt-2 h-0.5 w-full overflow-hidden rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }}>
+              <div className="h-full w-1/3 spin-slow" style={{ background: "var(--accent)", animation: "redux-progress 1.6s ease-in-out infinite" }} />
+            </div>
+          )}
+          <style>{`@keyframes redux-progress { 0%{transform:translateX(-100%)} 50%{transform:translateX(150%)} 100%{transform:translateX(-100%)} }`}</style>
         </div>
       )}
 
