@@ -110,6 +110,22 @@ const FALLBACK_WISP_SERVERS = [
     "wss://glseries.net/wisp/",
     "wss://scram.owoellen.rocks/wisp/",
     "wss://wispserver.dev/wisp/",
+    // Batch 2 — additional public wisps from various proxy communities:
+    "wss://wisp1.figgyc.dev:443",
+    "wss://wisp2.figgyc.dev:443",
+    "wss://wisp.r_comm.onrender.com/",
+    "wss://wisp.tammustech.workers.dev/",
+    "wss://wisp.jclp.workers.dev/",
+    "wss://wisp.luoa.ray-0.workers.dev/",
+    "wss://wisp.nichind.workers.dev/",
+    "wss://wisp.aeroplane.workers.dev/",
+    "wss://scramjet-wisp.rasendo.workers.dev/",
+    "wss://wisp.duffythehacker.workers.dev/",
+    "wss://wisp.belowaverage.dev/",
+    "wss://wispc.figgyc.dev/",
+    "wss://wisp.kirthik.workers.dev/",
+    "wss://wisp.bagel.addHandler.workers.dev/",
+    "wss://wisp-fast.mercurywork.shop:443",
 ];
 
 let wispConfig = { wispurl: null, autoswitch: true };

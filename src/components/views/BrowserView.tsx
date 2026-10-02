@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ExternalLink, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, RotateCw, Home, Lock, ExternalLink, AlertCircle, Star, Terminal, Bookmark } from "lucide-react";
 import { useSettings } from "@/store/settings";
 import { withBase } from "@/lib/base";
 import { toast } from "sonner";
@@ -57,6 +57,11 @@ export function BrowserView() {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Bookmarks — persisted to localStorage. Star button toggles current URL.
+  const [bookmarks, setBookmarks] = useState<{ url: string; title: string; added: number }[]>([]);
+  // Dev tools panel — shows the JSON view of the current frame's state.
+  const [showDevTools, setShowDevTools] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
   const frameHostRef = useRef<HTMLDivElement | null>(null);
   const scramjetRef = useRef<any>(null);
   const frameRef = useRef<any>(null);
@@ -226,6 +231,38 @@ export function BrowserView() {
   const goHome = () => navigate(SEARCH_ENGINES[searchEngine] || SEARCH_ENGINES.duckduckgo);
   const openExternal = () => { if (currentUrl) window.open(currentUrl, "_blank"); };
 
+  // Bookmarks: load from localStorage on mount.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("redux-browser-bookmarks");
+      if (raw) setBookmarks(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const saveBookmarks = (list: { url: string; title: string; added: number }[]) => {
+    setBookmarks(list);
+    try { localStorage.setItem("redux-browser-bookmarks", JSON.stringify(list)); } catch {}
+  };
+
+  const isBookmarked = currentUrl ? bookmarks.some((b) => b.url === currentUrl) : false;
+
+  const toggleBookmark = () => {
+    if (!currentUrl) return;
+    const title = input.replace(/^redux:\/\//, "") || currentUrl;
+    if (isBookmarked) {
+      saveBookmarks(bookmarks.filter((b) => b.url !== currentUrl));
+      toast.success("Bookmark removed");
+    } else {
+      saveBookmarks([...bookmarks, { url: currentUrl, title, added: Date.now() }]);
+      toast.success("Bookmark added", { description: title });
+    }
+  };
+
+  const openBookmark = (url: string) => {
+    setShowBookmarks(false);
+    navigate(url);
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Toolbar */}
@@ -239,6 +276,69 @@ export function BrowserView() {
           <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="redux://search or enter address" className="flex-1 bg-transparent text-sm outline-none" spellCheck={false} />
           {loading && <div className="h-4 w-4 spin-slow rounded-full border-2" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />}
         </form>
+        {currentUrl && (
+          <button
+            onClick={toggleBookmark}
+            className="rounded-lg p-1.5 transition-colors hover:surface2"
+            aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+            title={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+            style={isBookmarked ? { color: "#fbbf24" } : undefined}
+          >
+            <Star className="h-4 w-4" style={isBookmarked ? { fill: "currentColor" } : undefined} />
+          </button>
+        )}
+        {/* Bookmarks dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowBookmarks((v) => !v)}
+            className="rounded-lg p-1.5 transition-colors hover:surface2"
+            aria-label="Bookmarks"
+            title="Bookmarks"
+          >
+            <Bookmark className="h-4 w-4" style={{ color: bookmarks.length > 0 ? "var(--accent)" : "var(--text-muted)" }} />
+          </button>
+          {showBookmarks && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowBookmarks(false)} />
+              <div
+                className="absolute right-0 top-full z-20 mt-1 w-72 max-h-80 overflow-y-auto rounded-lg border shadow-2xl"
+                style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+              >
+                <div className="border-b px-3 py-2 text-xs font-medium" style={{ borderColor: "var(--border)" }}>
+                  Bookmarks ({bookmarks.length})
+                </div>
+                {bookmarks.length === 0 ? (
+                  <div className="px-3 py-4 text-center text-xs" style={{ color: "var(--text-muted)" }}>
+                    No bookmarks yet. Click the star to add one.
+                  </div>
+                ) : (
+                  bookmarks.map((b) => (
+                    <button
+                      key={b.url + b.added}
+                      onClick={() => openBookmark(b.url)}
+                      className="block w-full px-3 py-2 text-left text-xs transition-colors hover:surface2"
+                      style={{ color: "var(--text)" }}
+                      title={b.url}
+                    >
+                      <div className="truncate font-medium">{b.title}</div>
+                      <div className="truncate text-[10px]" style={{ color: "var(--text-muted)" }}>{b.url}</div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        {/* Dev tools toggle */}
+        <button
+          onClick={() => setShowDevTools((v) => !v)}
+          className="rounded-lg p-1.5 transition-colors hover:surface2"
+          aria-label="Dev tools"
+          title="Dev tools (browser state inspector)"
+          style={showDevTools ? { background: "var(--accent)", color: "var(--bg)" } : undefined}
+        >
+          <Terminal className="h-4 w-4" />
+        </button>
         {currentUrl && <button onClick={openExternal} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Open in new tab"><ExternalLink className="h-4 w-4" /></button>}
       </div>
 
@@ -260,8 +360,35 @@ export function BrowserView() {
       {/* Footer */}
       <div className="flex items-center justify-between border-t px-3 py-1 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
         <span className="truncate">{currentUrl ? toReduxUrl(currentUrl) : "Ready"}</span>
-        <span>Scramjet: {ready ? "active" : error ? "error" : "starting…"}</span>
+        <span>Scramjet: {ready ? "active" : error ? "error" : "starting…"} · Bookmarks: {bookmarks.length}</span>
       </div>
+
+      {/* Dev tools panel — slides up from the bottom when toggled */}
+      {showDevTools && (
+        <div className="border-t" style={{ borderColor: "var(--border)", background: "var(--surface)", maxHeight: "40%" }}>
+          <div className="flex items-center justify-between border-b px-3 py-1.5 text-xs" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2 font-mono">
+              <Terminal className="h-3 w-3" style={{ color: "var(--accent)" }} />
+              <span style={{ color: "var(--text-muted)" }}>redux dev tools</span>
+            </div>
+            <button onClick={() => setShowDevTools(false)} className="rounded px-2 py-0.5 text-[10px] hover:surface2">close</button>
+          </div>
+          <div className="overflow-auto p-3 font-mono text-[11px]" style={{ color: "var(--text)" }}>
+            <div><span style={{ color: "var(--text-muted)" }}>current_url:</span> {currentUrl || "(none)"}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>redux_url:</span> {currentUrl ? toReduxUrl(currentUrl) : "(none)"}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>history_idx:</span> {idx} / {history.length - 1}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>history_stack:</span> [{history.slice(Math.max(0, idx - 3), idx + 4).map((h, i) => `"${h.slice(0, 30)}"`).join(", ")}{history.length > 7 ? ", ..." : ""}]</div>
+            <div><span style={{ color: "var(--text-muted)" }}>wisp_url:</span> {wispUrl}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>scramjet_ready:</span> {ready ? "true" : "false"}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>scramjet_error:</span> {error || "(none)"}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>search_engine:</span> {searchEngine}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>bookmarks_count:</span> {bookmarks.length}</div>
+            <div className="mt-2" style={{ color: "var(--text-muted)" }}>
+              tip: open the real browser devtools with <kbd className="rounded px-1" style={{ background: "var(--surface2)" }}>F12</kbd> or <kbd className="rounded px-1" style={{ background: "var(--surface2)" }}>Ctrl+Shift+I</kbd>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
