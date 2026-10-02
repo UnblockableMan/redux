@@ -137,20 +137,14 @@ export function BrowserView() {
 
         // CRITICAL FIX (the white-screen bug):
         // Set up the BareMux transport in the MAIN THREAD before creating
-        // the Scramjet frame. The previous code created the frame first
-        // and let the SW try to set up the transport on-demand when a
-        // request came in — but the SW's BareMuxConnection + setTransport
-        // was racing against the first frame.go() call, so the request
-        // arrived before the transport was ready, and the iframe stayed
-        // white forever.
+        // the Scramjet frame. The SW's BareClient (which has .fetch())
+        // uses the shared transport that was set here. Both the main
+        // thread and the SW share the same SharedWorker (bareworker.js).
         //
-        // The staticsjv2 reference impl does this in the main thread:
-        //   1. BareMuxConnection(bareworker.js)
+        // Pattern mirrors staticsjv2's getSharedConnection():
+        //   1. new BareMuxConnection(bareworker.js)
         //   2. await setTransport(epoxy-transport, [{ wisp: wispUrl }])
         //   3. THEN createFrame() and frame.go(url)
-        // Both the main thread and the SW share the same SharedWorker
-        // (bareworker.js), so once the main thread sets the transport,
-        // the SW's requests will use it too.
         if (window.BareMux?.BareMuxConnection) {
           try {
             const conn = new window.BareMux.BareMuxConnection(basePath + "bareworker.js");
@@ -158,8 +152,9 @@ export function BrowserView() {
               "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs",
               [{ wisp: wispUrl }],
             );
-            // Store the connection so it's not GC'd.
-            scramjetRef.current = controller;
+            // Keep a reference so the connection isn't GC'd. The SW
+            // will create its own BareClient to fetch via this transport.
+            (scramjetRef.current as any) = controller;
             (scramjetRef.current as any)._bareMuxConnection = conn;
           } catch (err: any) {
             console.warn("BareMux transport setup failed:", err?.message);

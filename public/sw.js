@@ -214,8 +214,18 @@ scramjet.addEventListener("request", async (e) => {
             connection = await setTransportForUrl(wispConfig.wispurl);
         }
 
-        const tryFetch = async (conn) => {
-            return await conn.fetch(e.url, {
+        // IMPORTANT: use BareClient (which has .fetch()), NOT the
+        // BareMuxConnection directly. BareMuxConnection only has
+        // getTransport/setTransport/setRemoteTransport — it does NOT
+        // have a .fetch() method. BareClient uses the shared transport
+        // that was set via setTransport() on the BareMuxConnection.
+        // Both share the same underlying SharedWorker (bareworker.js).
+        const tryFetch = async () => {
+            if (!self.BareMux?.BareClient) {
+                throw new Error("BareClient not loaded in SW context");
+            }
+            const client = new BareMux.BareClient();
+            return await client.fetch(e.url, {
                 method: e.method,
                 body: e.body,
                 headers: e.requestHeaders,
@@ -228,20 +238,19 @@ scramjet.addEventListener("request", async (e) => {
         };
 
         try {
-            return await tryFetch(connection);
+            return await tryFetch();
         } catch (err) {
             const msg = String(err?.message || err || "");
             // The "invalid MessagePort" failure happens when the underlying
             // SharedWorker can't postMessage. Retry with fallbacks.
-            if (/MessagePort|invalid|transport|connection|network|fetch/i.test(msg)) {
+            if (/MessagePort|invalid|transport|connection|network|fetch|BareClient/i.test(msg)) {
                 lastErrorWasMessagePort = /MessagePort|invalid/i.test(msg);
                 const chain = buildWispChain().filter((u) => u !== currentTransportUrl);
                 for (const candidate of chain) {
                     try {
-                        const next = await setTransportForUrl(candidate);
-                        const res = await tryFetch(next);
+                        await setTransportForUrl(candidate);
+                        const res = await tryFetch();
                         // It worked — promote this transport.
-                        currentTransport = next;
                         currentTransportUrl = candidate;
                         // Notify the page so it can update the UI.
                         const clients = await self.clients.matchAll({ includeUncontrolled: true });
