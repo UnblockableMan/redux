@@ -589,8 +589,10 @@ export function AnimeView() {
                 {continueWatching.map((cw) => {
                   const pct = cw.duration > 0 ? Math.min(100, (cw.currentTime / cw.duration) * 100) : 0;
                   return (
-                    <button
+                    <div
                       key={cw.anikotoId}
+                      role="button"
+                      tabIndex={0}
                       onClick={async () => {
                         // Open the series, then jump to the saved episode.
                         setLoading(true);
@@ -631,13 +633,13 @@ export function AnimeView() {
                       <div className="truncate text-xs font-medium">{cw.title}</div>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); clearContinueWatching(cw.anikotoId); refreshContinueWatching(); }}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); clearContinueWatching(cw.anikotoId); refreshContinueWatching(); }}
                         className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] opacity-0 transition-opacity group-hover:opacity-100"
                         style={{ color: "#ef4444" }}
                       >
                         ×
                       </button>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

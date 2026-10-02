@@ -107,11 +107,14 @@ export function HomeView() {
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [query, setQuery] = useState("");
-  const [now, setNow] = useState(new Date());
+  // Use null initially to avoid SSR/client hydration mismatch on the clock —
+  // server render produces nothing for the time, client mounts then sets it.
+  const [now, setNow] = useState<Date | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setShortcuts(loadShortcuts());
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
     // Focus the search bar on mount so typing immediately starts a search.
     const ft = setTimeout(() => searchRef.current?.focus(), 300);
@@ -187,12 +190,17 @@ export function HomeView() {
 
   return (
     <div className="opium-home fade-in relative flex min-h-full flex-col items-center justify-center overflow-hidden p-6 text-center">
-      {/* Time + date top-left */}
+      {/* Time + date top-left — renders nothing until the client mounts to
+          avoid SSR/client hydration mismatch on the clock. */}
       <div className="absolute left-6 top-6 text-left" style={{ color: "var(--text-muted)" }}>
-        <div className="font-mono text-2xl tabular-nums" style={{ color: "var(--text)" }}>{fmtTime(now)}</div>
-        <div className="text-xs uppercase tracking-[0.18em]">
-          {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-        </div>
+        {now && (
+          <>
+            <div className="font-mono text-2xl tabular-nums" style={{ color: "var(--text)" }}>{fmtTime(now)}</div>
+            <div className="text-xs uppercase tracking-[0.18em]">
+              {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Status top-right */}
@@ -313,13 +321,24 @@ export function HomeView() {
       )}
       <div className="grid w-full max-w-3xl grid-cols-3 gap-3 pb-12 sm:grid-cols-6">
         {shortcuts.map((s, i) => (
-          <button
+          <div
             key={s.url + i}
+            role="button"
+            tabIndex={0}
             onClick={() => {
               setView("browser");
               setTimeout(() => {
                 window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: s.url }));
               }, 50);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setView("browser");
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: s.url }));
+                }, 50);
+              }
             }}
             className="opium-shortcut"
           >
@@ -327,11 +346,11 @@ export function HomeView() {
             <span>{s.name}</span>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); removeShortcut(i); }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeShortcut(i); }}
               className="sc-del"
               aria-label={`Remove ${s.name}`}
             >×</button>
-          </button>
+          </div>
         ))}
       </div>
 
