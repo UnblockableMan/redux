@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 
 const BRAND_ICONS = {
   music: "https://open.spotify.com/favicon.ico",
-  games: "https://cdn.simpleicons.org/playstation/white",
+  games: "https://playstation.com/favicon.ico",
   browser: "https://www.google.com/chrome/static/images/chrome-logo.svg",
-  anime: "https://cdn.simpleicons.org/crunchyroll/orange",
+  anime: "https://www.crunchyroll.com/favicon.ico",
 } as const;
 
 export function ToolBar() {

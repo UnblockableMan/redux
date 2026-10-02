@@ -224,11 +224,6 @@ export function HomeView() {
           in the CSS chunk on first load instead of being injected after React
           hydration (which caused the "CSS is messed up" flash on the live site). */}
       <h1 className="opium-wordmark">redux.</h1>
-      {/* Static tagline under the wordmark — "The better opium, " leads into
-          the rotating phrases in the bottom footer for a continuous flow. */}
-      <p className="opium-tagline">
-        The better opium, <span style={{ color: "var(--text-muted)" }}>static web proxy hub · scramjet · wisp · games · music · browser · anime · cloud gaming</span>
-      </p>
 
       {/* Search bar */}
       <form onSubmit={submitSearch} className="opium-search-bar mb-8 max-w-md">
@@ -254,100 +249,10 @@ export function HomeView() {
         </button>
       )}
 
-      {/* Cloud games — Roblox, GeForce Now, Xbox Cloud, etc.
-          (apps shortcut grid REMOVED per user request — these tiles now
-          drive straight to the destination through the Browser view.) */}
-      <div className="opium-section-title w-full max-w-3xl text-left">cloud gaming</div>
-      <div className="grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
-        {CLOUD_GAMES.map((g) => (
-          <button
-            key={g.name}
-            onClick={() => {
-              setView("browser");
-              setTimeout(() => {
-                window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: g.url }));
-              }, 50);
-              toast.info(`Loading ${g.name}`, { description: g.note });
-            }}
-            className="opium-shortcut"
-            title={g.note}
-          >
-            <img src={g.icon} alt="" referrerPolicy="no-referrer" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-            <span>{g.name}</span>
-          </button>
-        ))}
-      </div>
+      {/* (Cloud gaming + shortcuts grids REMOVED per user request — use the
+          toolbar at the top to access Games/Music/Browser/Anime/Forms/Ext.) */}
 
-      {/* User shortcuts (customizable) */}
-      <div className="opium-section-title w-full max-w-3xl text-left">
-        shortcuts
-        <button
-          onClick={() => setAddingShortcut((v) => !v)}
-          className="ml-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] align-middle transition-colors hover:opacity-80"
-          style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-        >
-          <Plus className="h-3 w-3" /> add
-        </button>
-      </div>
-      {addingShortcut && (
-        <form onSubmit={addShortcut} className="mb-4 flex w-full max-w-md items-center gap-2 rounded-lg border p-2" style={{ borderColor: "var(--border)" }}>
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Name"
-            className="flex-1 bg-transparent text-xs outline-none"
-            style={{ color: "var(--text)" }}
-            autoFocus
-          />
-          <input
-            value={newUrl}
-            onChange={(e) => setNewUrl(e.target.value)}
-            placeholder="https://example.com"
-            className="flex-1 bg-transparent text-xs outline-none"
-            style={{ color: "var(--text)" }}
-            spellCheck={false}
-          />
-          <button type="submit" className="rounded-full px-3 py-1 text-xs" style={{ background: "var(--accent)", color: "var(--bg)" }}>Add</button>
-          <button type="button" onClick={() => setAddingShortcut(false)} className="rounded-full p-1"><X className="h-3 w-3" /></button>
-        </form>
-      )}
-      <div className="grid w-full max-w-3xl grid-cols-3 gap-3 pb-24 sm:grid-cols-6">
-        {shortcuts.map((s, i) => (
-          <div
-            key={s.url + i}
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              setView("browser");
-              setTimeout(() => {
-                window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: s.url }));
-              }, 50);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setView("browser");
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: s.url }));
-                }, 50);
-              }
-            }}
-            className="opium-shortcut"
-          >
-            <img src={s.icon} alt="" referrerPolicy="no-referrer" onError={(e) => { (e.currentTarget as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='100%' height='100%' fill='%231a1a2e'/><text x='50%' y='50%' font-family='monospace' font-size='20' fill='%23fff' text-anchor='middle' dominant-baseline='middle'>" + s.name.charAt(0).toUpperCase() + "</text></svg>")}`; }} />
-            <span>{s.name}</span>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeShortcut(i); }}
-              className="sc-del"
-              aria-label={`Remove ${s.name}`}
-            >×</button>
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom footer — time on the left, rotating phrase on the right.
-          Replaces the old "© opium.best-inspired · redux · static · scramjet · wisp" line. */}
+      {/* Bottom footer — time on the left, rotating phrase on the right. */}
       <div className="opium-footer fixed bottom-4 left-0 right-0 z-30 flex items-center justify-between px-6 text-xs" style={{ color: "var(--text-muted)" }}>
         <div className="font-mono tabular-nums" style={{ color: "var(--text)" }}>
           {now ? fmtTime(now) : "--:--:--"}
