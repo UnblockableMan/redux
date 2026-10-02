@@ -238,3 +238,106 @@
   margin: 32px 0 16px;
   user-select: none;
 }
+
+/* Bottom footer with time + rotating phrase */
+.opium-footer {
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 8px 24px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+.opium-phrase {
+  max-width: 50vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  letter-spacing: 0.02em;
+}
+
+/* Square episode tiles in AnimeView series view */
+.anime-episode-square {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+}
+.anime-episode-square:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  transform: translateY(-2px);
+}
+.anime-episode-square .ep-num {
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(20px, 4vw, 32px);
+  color: var(--text);
+  line-height: 1;
+}
+.anime-episode-square .ep-title {
+  font-size: 10px;
+  color: var(--text-muted);
+  max-width: 100%;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.anime-episode-square:hover .ep-num { color: var(--accent); }
+
+/* Split-screen view container */
+.split-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--border);
+  height: 100%;
+}
+.split-screen iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+.split-screen .split-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.split-screen .split-pane-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.split-screen .split-pane-header input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+.split-screen .split-pane-body {
+  flex: 1;
+  position: relative;
+}

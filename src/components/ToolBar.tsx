@@ -9,7 +9,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
 const BRAND_ICONS = {
-  music: "https://commons.wikimedia.org/wiki/Special:FilePath/Spotify_App_Logo.svg?width=128",
+  music: "https://open.spotify.com/favicon.ico",
   games: "https://cdn.simpleicons.org/playstation/white",
   browser: "https://www.google.com/chrome/static/images/chrome-logo.svg",
   anime: "https://cdn.simpleicons.org/crunchyroll/orange",

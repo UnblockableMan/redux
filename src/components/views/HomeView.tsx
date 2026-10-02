@@ -33,7 +33,7 @@ const CLOUD_GAMES: CloudGame[] = [
   {
     name: "GeForce NOW",
     url: "https://play.geforcenow.com/mall/#/loginwall",
-    icon: "https://images.nvidia.com/etc/designs/nvidiaGDC/clientlibs/assets/images/favicon.ico",
+    icon: "https://play.geforcenow.com/favicon.ico",
     note: "NVIDIA's cloud gaming service. Steam/Epic library in the cloud.",
   },
   {
@@ -74,15 +74,26 @@ const CLOUD_GAMES: CloudGame[] = [
   },
 ];
 
-// Built-in apps (jump to redux views, not external sites).
-interface AppShortcut { name: string; view: string; icon: string; }
-const APPS: AppShortcut[] = [
-  { name: "Games", view: "games", icon: "https://cdn.simpleicons.org/playstation/white" },
-  { name: "Music", view: "music", icon: "https://commons.wikimedia.org/wiki/Special:FilePath/Spotify_App_Logo.svg?width=128" },
-  { name: "Browser", view: "browser", icon: "https://www.google.com/chrome/static/images/chrome-logo.svg" },
-  { name: "Anime", view: "anime", icon: "https://cdn.simpleicons.org/crunchyroll/orange" },
-  { name: "Forms", view: "forms", icon: "https://www.google.com/forms/about/favicon.ico" },
-  { name: "Extensions", view: "extensions", icon: "🧩" },
+// Rotating footer phrases — cycled every 4 seconds. The vibe is intentionally
+// chaotic / meme-y, matching the opium.best aesthetic.
+const ROTATING_PHRASES: string[] = [
+  "do ur work boi",
+  "larpgellion",
+  "Brooklyn do ur work",
+  "might add Roblox or wtv",
+  "tung tung nooo",
+  "redux da goat",
+  "someone is angy",
+  "aww so cute",
+  "I am the alpha boiii 6767 mango",
+  "I'm single btw",
+  "modern day nitting",
+  "I love being larp",
+  "I fed ur kid spaghetti",
+  "mangos in ur mouth",
+  "dark pshycologiy",
+  "idk how 2 speel",
+  "didyou know redux used 2 be called ABSSENT?",
 ];
 
 const SHORTCUTS_KEY = "opium-shortcuts";
@@ -107,18 +118,22 @@ export function HomeView() {
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [query, setQuery] = useState("");
-  // Use null initially to avoid SSR/client hydration mismatch on the clock —
-  // server render produces nothing for the time, client mounts then sets it.
+  // Use null initially to avoid SSR/client hydration mismatch on the clock.
   const [now, setNow] = useState<Date | null>(null);
+  const [phraseIndex, setPhraseIndex] = useState(0);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setShortcuts(loadShortcuts());
     setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
+    // Rotate the footer phrase every 4 seconds.
+    const p = setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % ROTATING_PHRASES.length);
+    }, 4000);
     // Focus the search bar on mount so typing immediately starts a search.
     const ft = setTimeout(() => searchRef.current?.focus(), 300);
-    return () => { clearInterval(t); clearTimeout(ft); };
+    return () => { clearInterval(t); clearInterval(p); clearTimeout(ft); };
   }, []);
 
   // Keyboard shortcut: '/' focuses the search bar.
@@ -145,15 +160,11 @@ export function HomeView() {
     e.preventDefault();
     if (!query.trim()) return;
     const base = searchEngines[searchEngine] || searchEngines.duckduckgo;
-    // If the query looks like a URL, navigate directly. Otherwise search.
     const q = query.trim();
     const looksLikeUrl = /^[\w-]+(\.[\w-]+)+/.test(q);
     const url = looksLikeUrl ? (q.startsWith("http") ? q : "https://" + q) : base + encodeURIComponent(q);
-    // Open in the Browser view via Scramjet proxy.
     setView("browser");
     setTimeout(() => {
-      // The BrowserView listens for an init-url CustomEvent so it can
-      // immediately navigate to this URL on mount.
       window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: url }));
     }, 50);
   };
@@ -190,24 +201,15 @@ export function HomeView() {
 
   return (
     <div className="opium-home fade-in relative flex min-h-full flex-col items-center justify-center overflow-hidden p-6 text-center">
-      {/* Time + date top-left — renders nothing until the client mounts to
-          avoid SSR/client hydration mismatch on the clock. */}
-      <div className="absolute left-6 top-6 text-left" style={{ color: "var(--text-muted)" }}>
-        {now && (
-          <>
-            <div className="font-mono text-2xl tabular-nums" style={{ color: "var(--text)" }}>{fmtTime(now)}</div>
-            <div className="text-xs uppercase tracking-[0.18em]">
-              {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-            </div>
-          </>
-        )}
+      {/* Top-left brand tag */}
+      <div className="absolute left-6 top-6 flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+        <img src={withBase("logo.svg")} alt="redux" className="h-6 w-auto" style={{ filter: "brightness(0) invert(1) opacity(0.85)" }} />
+        <span className="font-mono">v3.6</span>
       </div>
 
-      {/* Status top-right */}
-      <div className="absolute right-6 top-6 flex items-center gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
-        <span className="font-mono">v3.3</span>
-        <span>·</span>
-        <span>opium</span>
+      {/* Top-right rotating phrase label */}
+      <div className="absolute right-6 top-6 text-xs font-mono opacity-50" style={{ color: "var(--text-muted)" }}>
+        opium-inspired
       </div>
 
       {/* Wordmark — italic Playfair-style gradient text, like the opium.best home.
@@ -243,34 +245,15 @@ export function HomeView() {
         </button>
       )}
 
-      {/* Built-in apps */}
-      <div className="opium-section-title w-full max-w-3xl text-left">apps</div>
-      <div className="grid w-full max-w-3xl grid-cols-3 gap-3 sm:grid-cols-6">
-        {APPS.map((a) => (
-          <button
-            key={a.view}
-            onClick={() => setView(a.view as any)}
-            className="opium-shortcut"
-          >
-            {a.icon.startsWith("http") ? (
-              <img src={a.icon} alt="" referrerPolicy="no-referrer" />
-            ) : (
-              <span className="text-3xl">{a.icon}</span>
-            )}
-            <span>{a.name}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Cloud games — Roblox, GeForce Now, Xbox Cloud, etc. */}
+      {/* Cloud games — Roblox, GeForce Now, Xbox Cloud, etc.
+          (apps shortcut grid REMOVED per user request — these tiles now
+          drive straight to the destination through the Browser view.) */}
       <div className="opium-section-title w-full max-w-3xl text-left">cloud gaming</div>
       <div className="grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
         {CLOUD_GAMES.map((g) => (
           <button
             key={g.name}
             onClick={() => {
-              // Open the cloud game in the Browser view via Scramjet proxy
-              // so it loads through the SW (some sites need wisp).
               setView("browser");
               setTimeout(() => {
                 window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: g.url }));
@@ -319,7 +302,7 @@ export function HomeView() {
           <button type="button" onClick={() => setAddingShortcut(false)} className="rounded-full p-1"><X className="h-3 w-3" /></button>
         </form>
       )}
-      <div className="grid w-full max-w-3xl grid-cols-3 gap-3 pb-12 sm:grid-cols-6">
+      <div className="grid w-full max-w-3xl grid-cols-3 gap-3 pb-24 sm:grid-cols-6">
         {shortcuts.map((s, i) => (
           <div
             key={s.url + i}
@@ -354,11 +337,18 @@ export function HomeView() {
         ))}
       </div>
 
-      {/* Bottom footer */}
-      <div className="absolute bottom-4 flex items-center gap-3 text-[10px]" style={{ color: "var(--text-muted)" }}>
-        <span className="font-mono">© opium.best-inspired · redux</span>
-        <span>·</span>
-        <span>static · scramjet · wisp</span>
+      {/* Bottom footer — time on the left, rotating phrase on the right.
+          Replaces the old "© opium.best-inspired · redux · static · scramjet · wisp" line. */}
+      <div className="opium-footer fixed bottom-4 left-0 right-0 z-30 flex items-center justify-between px-6 text-xs" style={{ color: "var(--text-muted)" }}>
+        <div className="font-mono tabular-nums" style={{ color: "var(--text)" }}>
+          {now ? fmtTime(now) : "--:--:--"}
+          {now && <span className="ml-3 hidden text-[10px] uppercase tracking-[0.18em] opacity-60 sm:inline">
+            {now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+          </span>}
+        </div>
+        <div key={phraseIndex} className="opium-phrase fade-in font-mono text-right" style={{ color: "var(--accent)" }}>
+          {ROTATING_PHRASES[phraseIndex]}
+        </div>
       </div>
     </div>
   );

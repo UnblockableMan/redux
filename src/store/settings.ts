@@ -8,7 +8,8 @@ export type ThemeId =
   | "colorfill" | "spermont" | "rainy" | "whiteout" | "greyout" | "blackandyellow" | "searingcold"
   | "aurora" | "sakura" | "cyberpunk" | "vaporwave" | "forest" | "sunset" | "lavender" | "crimson" | "mint" | "cobalt"
   | "colorblind" | "inverted" | "perfection" | "gpt" | "manus" | "claude" | "skibidiohio" | "theend" | "kingyellow" | "kingblack"
-  | "neonpink" | "ghostly" | "paperwhite" | "supernova" | "ghosttown" | "crystal";
+  | "neonpink" | "ghostly" | "paperwhite" | "supernova" | "ghosttown" | "crystal"
+  | "absent" | "blaze" | "tidal" | "ember" | "jade" | "quartz" | "velvet" | "frost";
 
 export type VideoWallpaperId = "none" | "blackhole" | "rainycity" | "gojosukuna" | "minecraft" | "snowfox" | "f1" | "cozyfox" | "hunt" | "custom";
 
@@ -219,6 +220,23 @@ export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; 
   { id: "ghosttown", label: "Ghost Town", bg: "#1a140c", surface: "#241c10", text: "#d4c0a0", textMuted: "#7a6a4a", accent: "#a67c52", border: "#3a2a14" },
   // Crystal — faceted ice-blue on near-white frost.
   { id: "crystal", label: "Crystal", bg: "#e0f4ff", surface: "#c8e4f4", text: "#0a2a4a", textMuted: "#5a7a9a", accent: "#0088cc", border: "#a0c8e0" },
+  // Batch 7 — 8 more themes (now 57 total)
+  // Absent — redux's old name (per the rotating phrase). Pitch black with electric white.
+  { id: "absent", label: "ABSSENT", bg: "#000000", surface: "#0a0a0a", text: "#ffffff", textMuted: "#888888", accent: "#00ff88", border: "#1a1a1a" },
+  // Blaze — fiery orange-red on charcoal.
+  { id: "blaze", label: "Blaze", bg: "#0a0402", surface: "#140a04", text: "#ffe8d0", textMuted: "#a06a4a", accent: "#ff4500", border: "#2a1408" },
+  // Tidal — deep ocean teal with bioluminescent accent.
+  { id: "tidal", label: "Tidal", bg: "#02101a", surface: "#082030", text: "#d0f0ff", textMuted: "#4a7a9a", accent: "#00ffcc", border: "#0e2a3e" },
+  // Ember — smoldering coals, deep red-brown.
+  { id: "ember", label: "Ember", bg: "#0c0606", surface: "#180a0a", text: "#ffd0c0", textMuted: "#8a4a3a", accent: "#ff6a3a", border: "#241010" },
+  // Jade — soft green-on-green like polished jade stone.
+  { id: "jade", label: "Jade", bg: "#02140c", surface: "#082a14", text: "#d0ffe0", textMuted: "#4a8a6a", accent: "#00d678", border: "#0e3a1c" },
+  // Quartz — soft pink-purple mineral sheen.
+  { id: "quartz", label: "Quartz", bg: "#0c0814", surface: "#181024", text: "#f0d0ff", textMuted: "#7a5a9a", accent: "#c870ff", border: "#2a1840" },
+  // Velvet — luxurious purple-on-black with gold accent.
+  { id: "velvet", label: "Velvet", bg: "#080010", surface: "#14081c", text: "#f0e0ff", textMuted: "#6a4a8a", accent: "#d4af37", border: "#1e1028" },
+  // Frost — icy pastel blue-white.
+  { id: "frost", label: "Frost", bg: "#f0f8ff", surface: "#d8ecf8", text: "#0a1a2a", textMuted: "#5a7a9a", accent: "#0088cc", border: "#b0d0e8" },
 ];
 
 export const WALLPAPERS: { id: WallpaperId; label: string; css: string }[] = [

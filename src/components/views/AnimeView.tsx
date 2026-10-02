@@ -210,10 +210,14 @@ async function loadInitialCatalog(): Promise<CatalogEntry[]> {
       }
       const existing = anikotoRecentCache.find((a) => a.title.toLowerCase() === t.title.toLowerCase());
       if (existing) {
-        // upgrade poster/banner if missing
+        // AniKoto's image CDN (cdn.anipixcdn.co) is often blocked by CORS
+        // in browsers, so PREFER the AniList cover whenever we have a match.
+        // Also upgrade banner/year/genres/score if missing.
+        if (t.poster) existing.poster = t.poster;
         if (!existing.banner) existing.banner = t.banner;
         if (!existing.year) existing.year = t.year;
         if (!existing.genres) existing.genres = t.genres;
+        if (t.score && !existing.score) existing.score = t.score;
       } else {
         anikotoRecentCache.push(t);
       }
@@ -299,7 +303,10 @@ async function fetchSeries(anikotoId: number): Promise<SeriesData | null> {
   return {
     id: String(anikotoId),
     title: s.title || "Unknown",
-    image: s.image || s.poster || s.background_image || "",
+    // AniKoto's image (cdn.anipixcdn.co) is blocked by CORS in browsers —
+    // leave it empty and let SeriesView fall back to the catalogEntry.poster
+    // (which is the AniList cover we already fetched).
+    image: s.image && s.image.includes("anipixcdn.co") ? "" : (s.image || s.poster || s.background_image || ""),
     status: s.status || "",
     type: s.type || s.terms_by_type?.type?.[0] || "",
     genres: s.genres || s.terms_by_type?.genre || [],
@@ -377,9 +384,11 @@ export function AnimeView() {
   const [currentEpIndex, setCurrentEpIndex] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"browse" | "series" | "watch">("browse");
-  // Player mode: 'native' = HLS.js player with real skip-intro / quality / subs.
-  // 'iframe' = legacy iframe player (fallback when native fails or user opts out).
-  const [playerMode, setPlayerMode] = useState<"native" | "iframe">("native");
+  // Player mode: 'iframe' = legacy iframe player (the DEFAULT — works reliably
+  //   because megaplay.buzz renders its own UI and our iframe just embeds it).
+  // 'native' = HLS.js player with REAL intro/outro markers + quality + subs
+  //   (more polished when it works but breaks if megaplay changes their API).
+  const [playerMode, setPlayerMode] = useState<"native" | "iframe">("iframe");
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Continue Watching — pulled from localStorage progress entries.
@@ -726,24 +735,17 @@ function SeriesView({ series, catalogEntry, onBack, onPlay }: {
       </div>
       <h2 className="mb-3 mt-6 text-lg font-semibold">Episodes ({series.episodes.length})</h2>
       {series.episodes.length > 0 ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
           {series.episodes.map((ep, i) => (
             <button
               key={`${ep.episode_embed_id}-${i}`}
               onClick={() => onPlay(i)}
-              className="group surface flex items-center gap-3 rounded-lg border p-3 text-left transition-all hover:scale-[1.01]"
-              style={{ borderColor: "var(--border)" }}
+              className="anime-episode-square"
+              title={ep.title ? `Ep ${ep.number}: ${ep.title}` : `Episode ${ep.number}`}
             >
-              <div className="relative h-16 w-28 flex-none overflow-hidden rounded-md" style={{ background: "var(--surface2)" }}>
-                {ep.image && <img src={ep.image} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Play className="h-6 w-6 fill-current" style={{ color: "var(--accent)" }} />
-                </div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">Episode {ep.number}</div>
-                {ep.title && <div className="truncate text-xs" style={{ color: "var(--text-muted)" }}>{ep.title}</div>}
-              </div>
+              <div className="ep-num">{ep.number}</div>
+              {ep.title && <div className="ep-title">{ep.title}</div>}
+              <Play className="absolute right-1.5 bottom-1.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }} />
             </button>
           ))}
         </div>
