@@ -90,10 +90,17 @@ const ROTATING_PHRASES: string[] = [
   "modern day nitting",
   "I love being larp",
   "I fed ur kid spaghetti",
-  "mangos in ur mouth",
+  "mangos in your mouth",
   "dark pshycologiy",
   "idk how 2 speel",
   "didyou know redux used 2 be called ABSSENT?",
+  // Batch 2 — user-added phrases
+  "my enemies are many, my equals are none",
+  "SPONEGBOBBB",
+  "what time is it",
+  "#wifedat",
+  "Noah Noah pls Collab with me pls pls pls",
+  "any other proxies tryna Collab??? #wheredeyat?",
 ];
 
 const SHORTCUTS_KEY = "opium-shortcuts";
@@ -217,8 +224,10 @@ export function HomeView() {
           in the CSS chunk on first load instead of being injected after React
           hydration (which caused the "CSS is messed up" flash on the live site). */}
       <h1 className="opium-wordmark">redux.</h1>
+      {/* Static tagline under the wordmark — "The better opium, " leads into
+          the rotating phrases in the bottom footer for a continuous flow. */}
       <p className="opium-tagline">
-        a static web proxy hub · games · music · browser · anime · cloud gaming
+        The better opium, <span style={{ color: "var(--text-muted)" }}>static web proxy hub · scramjet · wisp · games · music · browser · anime · cloud gaming</span>
       </p>
 
       {/* Search bar */}

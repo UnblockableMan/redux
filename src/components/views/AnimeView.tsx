@@ -296,6 +296,44 @@ function playerUrl(ep: AnikotoEpisode, dub: boolean): string {
   return `https://megaplay.buzz/stream/s-2/${ep.episode_embed_id}/${dub ? "dub" : "sub"}`;
 }
 
+// Fetch a single anime's full metadata (description, genres, score, etc.)
+// from AniList by its anilist ID. Used as a fallback when the catalog
+// entry doesn't have a description (e.g. user opened from AniKoto's
+// recent feed without going through AniList search first).
+const ANILIST_SINGLE_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      id
+      idMal
+      title { english romaji native }
+      description(asHtml: false)
+      genres
+      averageScore
+      seasonYear
+      format
+      status
+      episodes
+      coverImage { large medium }
+      bannerImage
+    }
+  }
+`;
+
+async function fetchAniListById(anilistId: number): Promise<Partial<CatalogEntry> | null> {
+  try {
+    const res = await fetch(ANILIST_GRAPHQL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: ANILIST_SINGLE_QUERY, variables: { id: anilistId } }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const m = json?.data?.Media;
+    if (!m) return null;
+    return anilistToEntry(m);
+  } catch { return null; }
+}
+
 async function fetchSeries(anikotoId: number): Promise<SeriesData | null> {
   const data = await animeFetch(`/series/${encodeURIComponent(anikotoId)}`);
   const s = data?.data || data;
@@ -440,6 +478,27 @@ export function AnimeView() {
         setLoading(false);
         return;
       }
+      // AniKoto's /series/{id} endpoint often returns an empty title —
+      // always prefer the catalog entry's title (which we got from
+      // AniList search/recent) so the series page never shows "Unknown".
+      if (!s.title || s.title === "Unknown") s.title = entry.title;
+      if (!s.description) s.description = entry.description || "";
+      if (!s.image) s.image = entry.poster || "";
+
+      // If we STILL don't have a description (e.g. user opened from
+      // AniKoto's recent feed which has no metadata), try fetching from
+      // AniList by anilist ID as a final fallback.
+      if ((!s.description || !s.image) && entry.anilistId) {
+        const full = await fetchAniListById(entry.anilistId);
+        if (full) {
+          if (!s.description && full.description) s.description = full.description;
+          if (!s.image && full.poster) s.image = full.poster;
+          // Upgrade the catalog entry too so re-opening is instant.
+          if (!entry.description && full.description) entry.description = full.description;
+          if (!entry.poster && full.poster) entry.poster = full.poster;
+        }
+      }
+
       setSeries(s);
       setSeriesCatalogEntry(entry);
       setCurrentEpIndex(0);
