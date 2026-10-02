@@ -478,8 +478,8 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                   <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Go to Home</span><kbd className="font-mono">Alt + H</kbd></div>
                   <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Go to Browser</span><kbd className="font-mono">Alt + B</kbd></div>
                   <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Go to Anime</span><kbd className="font-mono">Alt + A</kbd></div>
-                  <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Go to Music</span><kbd className="font-mono">Alt + M</kbd></div>
                   <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Go to Games</span><kbd className="font-mono">Alt + G</kbd></div>
+                  <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Go to Tools</span><kbd className="font-mono">Alt + T</kbd></div>
                   <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Open Settings</span><kbd className="font-mono">Alt + S</kbd></div>
                   <div className="flex justify-between rounded px-2 py-1" style={{ background: "var(--surface2)" }}><span>Toggle about:blank</span><kbd className="font-mono">Alt + `</kbd></div>
                 </div>

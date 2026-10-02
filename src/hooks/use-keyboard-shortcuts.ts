@@ -11,10 +11,10 @@ import { toast } from "sonner";
  *   Alt + H           Go to Home
  *   Alt + B           Go to Browser
  *   Alt + A           Go to Anime
- *   Alt + M           Go to Music
  *   Alt + G           Go to Games
  *   Alt + E           Go to Extensions
  *   Alt + F           Go to Forms
+ *   Alt + T           Go to Tools
  *   Alt + S           Open Settings panel (CustomEvent 'redux-open-settings')
  *   Alt + `           Open in about:blank (CustomEvent 'redux-about-blank')
  *   Esc  Esc  Esc     Toggle panic mode (disguise as fake Google Docs page)
@@ -74,10 +74,10 @@ export function useKeyboardShortcuts() {
           h: "home",
           b: "browser",
           a: "anime",
-          m: "music",
           g: "games",
           e: "extensions",
           f: "forms",
+          t: "tools",
         };
         if (viewMap[k]) {
           e.preventDefault();

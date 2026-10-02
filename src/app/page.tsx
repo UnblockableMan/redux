@@ -9,7 +9,6 @@ import { HomeView } from "@/components/views/HomeView";
 import { VideoWallpaper } from "@/components/VideoWallpaper";
 import { PanicMode } from "@/components/PanicMode";
 import { GamesView } from "@/components/views/GamesView";
-import { MusicView } from "@/components/views/MusicView";
 import { BrowserView } from "@/components/views/BrowserView";
 import { AnimeView } from "@/components/views/AnimeView";
 import { ExtensionsView } from "@/components/views/ExtensionsView";
@@ -47,7 +46,6 @@ export default function Page() {
         <main id="main-scroll" className="relative z-10 flex-1 overflow-y-auto" style={paddingStyle}>
           {view === "home" && <HomeView />}
           {view === "games" && <GamesView />}
-          {view === "music" && <MusicView />}
           {view === "browser" && <BrowserView />}
           {view === "anime" && <AnimeView />}
           {view === "extensions" && <ExtensionsView />}

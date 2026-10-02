@@ -20,8 +20,9 @@ function getBasePath() {
   return p.endsWith("/") ? p : p + "/";
 }
 
-function toReduxUrl(url: string): string {
-  return url.replace(/^https?:\/\//, "redux://");
+function toDisplayUrl(url: string): string {
+  // Just show the plain URL — no redux:// prefix (user requested removal).
+  return url;
 }
 
 const SEARCH_ENGINES: Record<string, string> = {
@@ -108,7 +109,7 @@ export function BrowserView() {
 
         if (cancelled) return;
 
-        // Register the service worker.
+        // Register the service worker first.
         if ("serviceWorker" in navigator) {
           const reg = await navigator.serviceWorker.register(basePath + "sw.js", { scope: basePath });
           await navigator.serviceWorker.ready;
@@ -121,35 +122,9 @@ export function BrowserView() {
           sendConfig();
           setTimeout(sendConfig, 500);
           setTimeout(sendConfig, 1500);
-          // Also re-send whenever a new SW takes over (e.g. after a refresh).
           navigator.serviceWorker.addEventListener("controllerchange", () => {
             setTimeout(sendConfig, 100);
           });
-
-          // Pre-flight: actually open a WebSocket to the wisp server and
-          // wait for it to connect (or fail) before we let the user try
-          // to navigate. The previous code just sent the config message
-          // and immediately allowed navigation — which meant the user
-          // would see a white screen for ~5 seconds while the SW tried
-          // to set up the transport. Now we surface a "Connecting to
-          // wisp..." status while the test runs.
-          try {
-            await new Promise<void>((resolve, reject) => {
-              const ws = new WebSocket(wispUrl, "wisp");
-              const timer = setTimeout(() => {
-                ws.close();
-                reject(new Error("wisp timeout"));
-              }, 8000);
-              ws.onopen = () => { clearTimeout(timer); ws.close(); resolve(); };
-              ws.onerror = () => { clearTimeout(timer); reject(new Error("wisp refused")); };
-            });
-          } catch (testErr: any) {
-            // The default wisp is unreachable — surface a clear error
-            // and let the SW fallback chain kick in on first navigation.
-            setError(`Default wisp unreachable (${testErr.message}). Trying fallbacks on next request — pick another in Settings → Proxy.`);
-          }
-
-          // Listen for wisp-fallback notifications from the SW.
           navigator.serviceWorker.addEventListener("message", (ev) => {
             const data = ev.data || {};
             if (data.type === "wisp-fallback" && data.url) {
@@ -158,6 +133,38 @@ export function BrowserView() {
               });
             }
           });
+        }
+
+        // CRITICAL FIX (the white-screen bug):
+        // Set up the BareMux transport in the MAIN THREAD before creating
+        // the Scramjet frame. The previous code created the frame first
+        // and let the SW try to set up the transport on-demand when a
+        // request came in — but the SW's BareMuxConnection + setTransport
+        // was racing against the first frame.go() call, so the request
+        // arrived before the transport was ready, and the iframe stayed
+        // white forever.
+        //
+        // The staticsjv2 reference impl does this in the main thread:
+        //   1. BareMuxConnection(bareworker.js)
+        //   2. await setTransport(epoxy-transport, [{ wisp: wispUrl }])
+        //   3. THEN createFrame() and frame.go(url)
+        // Both the main thread and the SW share the same SharedWorker
+        // (bareworker.js), so once the main thread sets the transport,
+        // the SW's requests will use it too.
+        if (window.BareMux?.BareMuxConnection) {
+          try {
+            const conn = new window.BareMux.BareMuxConnection(basePath + "bareworker.js");
+            await conn.setTransport(
+              "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs",
+              [{ wisp: wispUrl }],
+            );
+            // Store the connection so it's not GC'd.
+            scramjetRef.current = controller;
+            (scramjetRef.current as any)._bareMuxConnection = conn;
+          } catch (err: any) {
+            console.warn("BareMux transport setup failed:", err?.message);
+            // Not fatal — the SW fallback chain will try on first request.
+          }
         }
 
         scramjetRef.current = controller;
@@ -172,7 +179,7 @@ export function BrowserView() {
         frame.addEventListener("urlchange", (e: any) => {
           if (e.url) {
             setCurrentUrl(e.url);
-            setInput(toReduxUrl(e.url));
+            setInput(toDisplayUrl(e.url));
           }
         });
 
@@ -207,7 +214,7 @@ export function BrowserView() {
       const newHist = [...history.slice(0, idx + 1), url];
       setHistory(newHist);
       setIdx(newHist.length - 1);
-      setInput(toReduxUrl(url));
+      setInput(toDisplayUrl(url));
       setCurrentUrl(url);
       frameRef.current.go(url);
     },
@@ -296,7 +303,7 @@ export function BrowserView() {
         <button onClick={goHome} className="rounded-lg p-1.5 transition-colors hover:surface2" aria-label="Home"><Home className="h-4 w-4" /></button>
         <form className="flex flex-1 items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: "var(--border)", background: "var(--surface2)" }} onSubmit={(e) => { e.preventDefault(); navigate(input); }}>
           <Lock className="h-3.5 w-3.5" style={{ color: "var(--text-muted)" }} />
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="redux://search or enter address" className="flex-1 bg-transparent text-sm outline-none" spellCheck={false} />
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="search or enter address" className="flex-1 bg-transparent text-sm outline-none" spellCheck={false} />
           {loading && <div className="h-4 w-4 spin-slow rounded-full border-2" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />}
         </form>
         {currentUrl && (
@@ -403,7 +410,7 @@ export function BrowserView() {
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t px-3 py-1 text-xs" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
-        <span className="truncate">{currentUrl ? toReduxUrl(currentUrl) : "Ready"}</span>
+        <span className="truncate">{currentUrl ? toDisplayUrl(currentUrl) : "Ready"}</span>
         <span>Scramjet: {ready ? "active" : error ? "error" : "starting…"} · Bookmarks: {bookmarks.length}</span>
       </div>
 
@@ -419,7 +426,7 @@ export function BrowserView() {
           </div>
           <div className="overflow-auto p-3 font-mono text-[11px]" style={{ color: "var(--text)" }}>
             <div><span style={{ color: "var(--text-muted)" }}>current_url:</span> {currentUrl || "(none)"}</div>
-            <div><span style={{ color: "var(--text-muted)" }}>redux_url:</span> {currentUrl ? toReduxUrl(currentUrl) : "(none)"}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>redux_url:</span> {currentUrl ? toDisplayUrl(currentUrl) : "(none)"}</div>
             <div><span style={{ color: "var(--text-muted)" }}>history_idx:</span> {idx} / {history.length - 1}</div>
             <div><span style={{ color: "var(--text-muted)" }}>history_stack:</span> [{history.slice(Math.max(0, idx - 3), idx + 4).map((h, i) => `"${h.slice(0, 30)}"`).join(", ")}{history.length > 7 ? ", ..." : ""}]</div>
             <div><span style={{ color: "var(--text-muted)" }}>wisp_url:</span> {wispUrl}</div>
@@ -472,7 +479,7 @@ function StartPage({ onNavigate }: { onNavigate: (url: string) => void }) {
     <div className="flex h-full flex-col items-center justify-center p-8" style={{ background: "var(--bg)" }}>
       <img src={withBase("logo.svg")} alt="redux" className="mb-4 h-12 w-12" />
       <h1 className="mb-1 text-2xl font-bold">redux browser</h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-muted)" }}>Browse the web through Scramjet. redux:// all the way.</p>
+      <p className="mb-6 text-sm" style={{ color: "var(--text-muted)" }}>Browse the web through Scramjet.</p>
       <form onSubmit={submit} className="mb-8 w-full max-w-xl">
         <input
           value={query}

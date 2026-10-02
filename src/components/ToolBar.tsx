@@ -9,7 +9,6 @@ import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 
 const BRAND_ICONS = {
-  music: "https://icons.duckduckgo.com/ip3/open.spotify.com.ico",
   games: "https://icons.duckduckgo.com/ip3/playstation.com.ico",
   browser: "https://icons.duckduckgo.com/ip3/google.com.ico",
   anime: "https://icons.duckduckgo.com/ip3/crunchyroll.com.ico",
@@ -24,7 +23,6 @@ export function ToolBar() {
   const items: { id: typeof view; label: string; icon: string | typeof Home }[] = [
     { id: "home", label: "Home", icon: Home },
     { id: "games", label: "Games", icon: BRAND_ICONS.games },
-    { id: "music", label: "Music", icon: BRAND_ICONS.music },
     { id: "browser", label: "Browser", icon: BRAND_ICONS.browser },
     { id: "anime", label: "Anime", icon: BRAND_ICONS.anime },
     { id: "forms", label: "Forms", icon: ClipboardList },

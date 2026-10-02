@@ -1,7 +1,7 @@
 // View router — which app is currently active.
 import { create } from "zustand";
 
-export type View = "home" | "games" | "music" | "browser" | "anime" | "extensions" | "forms" | "tools" | "setup";
+export type View = "home" | "games" | "browser" | "anime" | "extensions" | "forms" | "tools" | "setup";
 
 interface NavState {
   view: View;
