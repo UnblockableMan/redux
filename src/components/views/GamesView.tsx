@@ -1,168 +1,26 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Star, Play, X, ExternalLink, Loader2, FileText } from "lucide-react";
+import { Search, Star, Play, X, ExternalLink, Loader2, Info, Video } from "lucide-react";
 import { toast } from "sonner";
+import { useNav } from "@/store/nav";
+import { CINE_CLOUD_GAMES, type CloudGame } from "./cine-cloud-games";
 
-interface Game {
-  id: number;
-  name: string;
-  cover: string;
-  url: string;
-  author?: string;
-  authorLink?: string;
-  // Cartel games use a direct slug — no template substitution.
-  cartel?: boolean;
-}
-
-const GAMES_JSON = "https://cdn.jsdelivr.net/gh/bestsabplayerox/assets@main/zones.json";
-const COVER_URL = "https://cdn.jsdelivr.net/gh/bestsabplayerox/covers@main";
-const HTML_URL = "https://cdn.jsdelivr.net/gh/bestsabplayerox/html@master";
-
-// Second catalog: the 35 HTML games from UnblockableMan/Cartel.
-// Each entry maps a slug (file in Cartel/games/<slug>.html) to a human title.
-const CARTEL_GAME_URL = "https://cdn.jsdelivr.net/gh/UnblockableMan/Cartel@main/games";
-const CARTEL_GAMES: { id: number; name: string; slug: string; cover?: string }[] = [
-  { id: 9001, name: "Class of '09", slug: "09" },
-  { id: 9002, name: "3D", slug: "3d" },
-  { id: 9003, name: "3D 2", slug: "3d2" },
-  { id: 9004, name: "Lethal Ape", slug: "ape" },
-  { id: 9005, name: "Arch", slug: "arch" },
-  { id: 9006, name: "Baldi 2", slug: "baldi2" },
-  { id: 9007, name: "Bank Robbery 2", slug: "bank" },
-  { id: 9008, name: "Bart Blast", slug: "bart" },
-  { id: 9009, name: "Bhop", slug: "bhop" },
-  { id: 9010, name: "Blade Ball", slug: "blade" },
-  { id: 9011, name: "Bowmasters", slug: "bow" },
-  { id: 9012, name: "Brawl", slug: "brawl" },
-  { id: 9013, name: "CaseOh's Basics", slug: "case" },
-  { id: 9014, name: "Clash", slug: "clash" },
-  { id: 9015, name: "Baldi", slug: "crack" },
-  { id: 9016, name: "Infinite Craft", slug: "craft" },
-  { id: 9017, name: "Baldi's Ultra Decompile", slug: "decompile" },
-  { id: 9018, name: "Doki Doki Literature Club", slug: "doki" },
-  { id: 9019, name: "Frag", slug: "frag" },
-  { id: 9020, name: "Gabriel's Schoolhouse", slug: "gabe" },
-  { id: 9021, name: "Granny 2", slug: "granny2" },
-  { id: 9022, name: "Web Dashers", slug: "gweb" },
-  { id: 9023, name: "Media Player", slug: "mp3" },
-  { id: 9024, name: "R.E.P.O", slug: "repo" },
-  { id: 9025, name: "SDK", slug: "sdk" },
-  { id: 9026, name: "Slope Plus", slug: "slope" },
-  { id: 9027, name: "Snowball.IO", slug: "snow" },
-  { id: 9028, name: "Ultra", slug: "ultra" },
-  { id: 9029, name: "Us", slug: "us" },
-  { id: 9030, name: "GTA: Vice City", slug: "vice" },
-  { id: 9031, name: "W1", slug: "w1" },
-  { id: 9032, name: "W2", slug: "w2" },
-  { id: 9033, name: "W3", slug: "w3" },
-  { id: 9034, name: "Geometry Dash World", slug: "world" },
-  { id: 9035, name: "Crunchy XP", slug: "xp" },
-];
-
-function cartelGameUrl(slug: string): string {
-  return `${CARTEL_GAME_URL}/${slug}.html`;
-}
-
-function resolveUrl(url: string): string {
-  return url.replace("{COVER_URL}", COVER_URL).replace("{HTML_URL}", HTML_URL);
-}
-
-// jsDelivr serves these .html files as text/plain, so browsers render the
-// SOURCE CODE instead of running the game. Fix: fetch the HTML, re-type it
-// as text/html via a Blob URL, and inject a <base> so relative assets load.
-function useGameBlobUrl(game: Game | null): { url: string; error: string | null } {
-  const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!game) return;
-    // Cartel games already point to a direct .html URL on jsDelivr, no
-    // template substitution needed. jsDelivr serves them as text/plain, so
-    // we still have to fetch + re-wrap as text/html Blob for them to run.
-    const direct = game.cartel ? game.url : resolveUrl(game.url);
-    let revoke = "";
-    let cancelled = false;
-
-    // Non-local games (already proper URLs) can go straight into the iframe.
-    if (!game.url.includes("{HTML_URL}") && !game.cartel) {
-      setUrl(direct);
-      setError(null);
-      return;
-    }
-
-    setUrl("");
-    setError(null);
-    fetch(direct)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.text();
-      })
-      .then((html) => {
-        if (cancelled) return;
-        if (!/<base\s/i.test(html)) {
-          const dir = direct.substring(0, direct.lastIndexOf("/") + 1);
-          html = /<head[^>]*>/i.test(html)
-            ? html.replace(/<head([^>]*)>/i, `<head$1><base href="${dir}">`)
-            : `<base href="${dir}">` + html;
-        }
-        const blob = new Blob([html], { type: "text/html" });
-        revoke = URL.createObjectURL(blob);
-        setUrl(revoke);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err?.message || "Failed to load game");
-          setUrl(direct); // last-ditch: try direct anyway
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      if (revoke) URL.revokeObjectURL(revoke);
-    };
-  }, [game]);
-
-  return { url, error };
-}
+// Tutorial video URL — served via jsDelivr from the Cine-Cloud-SRC repo.
+const TUTORIAL_VIDEO = "https://cdn.jsdelivr.net/gh/codiesnutkiss-sudo/Cine-Cloud-SRC@main/src/Tutorial.mp4";
 
 export function GamesView() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [games] = useState<CloudGame[]>(CINE_CLOUD_GAMES);
   const [query, setQuery] = useState("");
-  const [playing, setPlaying] = useState<Game | null>(null);
+  const [playing, setPlaying] = useState<CloudGame | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const setView = useNav((s) => s.setView);
 
   useEffect(() => {
-    // Load favorites from localStorage
     try {
       setFavorites(JSON.parse(localStorage.getItem("redux-game-favs") || "[]"));
     } catch {}
-
-    // Fetch the full games manifest (743 games) AND merge in the 35 Cartel games.
-    fetch(GAMES_JSON)
-      .then((r) => r.json())
-      .then((data: Game[]) => {
-        const base = (Array.isArray(data) ? data : []).filter((g) => g.id >= 0);
-        // Build Cartel game entries — they have no cover image, so we ship a
-        // simple SVG thumbnail with the game's initial.
-        const cartelEntries: Game[] = CARTEL_GAMES.map((c) => ({
-          id: c.id,
-          name: c.name,
-          cover: `data:image/svg+xml,${encodeURIComponent(
-            `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%25' height='100%25' fill='%231a1a2e'/><text x='50%25' y='50%25' font-family='monospace' font-size='72' fill='%23ffffff' text-anchor='middle' dominant-baseline='middle'>${c.name.charAt(0).toUpperCase()}</text></svg>`
-          )}`,
-          url: cartelGameUrl(c.slug),
-          author: "Cartel",
-          cartel: true,
-        }));
-        setGames([...base, ...cartelEntries]);
-        setLoading(false);
-      })
-      .catch((err) => {
-        toast.error("Failed to load games", { description: err.message });
-        setLoading(false);
-      });
   }, []);
 
   const toggleFav = (id: number) => {
@@ -176,7 +34,11 @@ export function GamesView() {
   const filtered = useMemo(() => {
     if (!query.trim()) return games;
     const q = query.toLowerCase();
-    return games.filter((g) => g.name.toLowerCase().includes(q));
+    return games.filter((g) =>
+      g.name.toLowerCase().includes(q) ||
+      g.dev.toLowerCase().includes(q) ||
+      g.tags.some((t) => t.toLowerCase().includes(q))
+    );
   }, [games, query]);
 
   const favGames = useMemo(
@@ -184,81 +46,140 @@ export function GamesView() {
     [games, favorites],
   );
 
+  const launchGame = (g: CloudGame) => {
+    // Open cloud games in the Browser view via Scramjet so they load
+    // through the proxy (some school networks block raccoongame.com).
+    setView("browser");
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: g.url }));
+    }, 50);
+    toast.info(`Launching ${g.name}`, { description: "Opening in the proxy browser..." });
+  };
+
   if (playing) {
-    return <GamePlayer game={playing} onExit={() => setPlaying(null)} />;
+    return <GamePlayer game={playing} onExit={() => setPlaying(null)} onLaunch={() => launchGame(playing)} />;
   }
 
   return (
     <div className="fade-in p-6 lg:p-8">
-      <h1 className="mb-1 text-2xl font-bold">Games</h1>
-      <p className="mb-6 text-sm" style={{ color: "var(--text-muted)" }}>
-        {games.length} games · from anchor ubg
-      </p>
+      <div className="mb-2 flex items-center gap-3">
+        <h1 className="text-2xl font-bold">Games</h1>
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+          {games.length} cloud games · via Cine-Cloud
+        </span>
+      </div>
 
+      {/* Tutorial banner — explains the raccoongame.com signup process */}
+      <div className="mb-6 rounded-xl border p-4" style={{ borderColor: "var(--accent)", background: "color-mix(in srgb, var(--accent) 8%, transparent)" }}>
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 flex-none mt-0.5" style={{ color: "var(--accent)" }} />
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold">How to play these games</h2>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+              These are cloud-streamed AAA games hosted on raccoongame.com. To play them, you need to:
+            </p>
+            <ol className="mt-2 ml-4 list-decimal text-xs space-y-1" style={{ color: "var(--text-muted)" }}>
+              <li>Use the <strong style={{ color: "var(--text)" }}>free email service</strong> (in the Tools or Browser view) to create a throwaway email address.</li>
+              <li>Go to <strong style={{ color: "var(--text)" }}>raccoongame.com</strong> and sign up using that email.</li>
+              <li>Once you verify the email, you'll have full access to all cloud games.</li>
+              <li>Click any game below — it opens in the proxy browser and starts streaming.</li>
+            </ol>
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all hover:scale-105"
+              style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+            >
+              <Video className="h-3.5 w-3.5" /> Watch tutorial video
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tutorial video modal */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6" onClick={() => setShowTutorial(false)}>
+          <div className="relative w-full max-w-3xl rounded-xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
+              <span className="text-sm font-medium">Tutorial: How to sign up for raccoongame.com</span>
+              <button onClick={() => setShowTutorial(false)} className="rounded-lg p-1 hover:surface2"><X className="h-4 w-4" /></button>
+            </div>
+            <video
+              src={TUTORIAL_VIDEO}
+              controls
+              autoPlay
+              className="w-full"
+              style={{ maxHeight: "70vh" }}
+            >
+              Your browser doesn't support video. <a href={TUTORIAL_VIDEO} target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>Download it here</a>.
+            </video>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
       <div className="relative mb-6 max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search games…"
+          placeholder="Search games..."
           className="w-full rounded-lg border bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none"
           style={{ borderColor: "var(--border)" }}
         />
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--text-muted)" }} />
-        </div>
-      ) : (
-        <>
-          {/* Favorites */}
-          {!query && favGames.length > 0 && (
-            <section className="mb-8">
-              <h2 className="mb-3 text-lg font-semibold">Favorites</h2>
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-                {favGames.map((g) => (
-                  <GameCard key={g.id} game={g} onPlay={() => setPlaying(g)} onFav={() => toggleFav(g.id)} isFav />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* All games */}
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">
-              {query ? `Results (${filtered.length})` : "All Games"}
-            </h2>
-            {filtered.length === 0 ? (
-              <p className="py-12 text-center text-sm" style={{ color: "var(--text-muted)" }}>No games found.</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-                {filtered.map((g) => (
-                  <GameCard
-                    key={g.id}
-                    game={g}
-                    onPlay={() => setPlaying(g)}
-                    onFav={() => toggleFav(g.id)}
-                    isFav={favorites.includes(g.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </>
+      {/* Favorites */}
+      {!query && favGames.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold">Favorites</h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+            {favGames.map((g) => (
+              <GameCard key={g.id} game={g} onPlay={() => launchGame(g)} onFav={() => toggleFav(g.id)} isFav />
+            ))}
+          </div>
+        </section>
       )}
+
+      {/* All games */}
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">
+          {query ? `Results (${filtered.length})` : `All Games (${filtered.length})`}
+        </h2>
+        {filtered.length === 0 ? (
+          <p className="py-12 text-center text-sm" style={{ color: "var(--text-muted)" }}>No games found.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+            {filtered.map((g) => (
+              <GameCard
+                key={g.id}
+                game={g}
+                onPlay={() => launchGame(g)}
+                onFav={() => toggleFav(g.id)}
+                isFav={favorites.includes(g.id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
-function GameCard({ game, onPlay, onFav, isFav }: { game: Game; onPlay: () => void; onFav: () => void; isFav: boolean }) {
+function GameCard({ game, onPlay, onFav, isFav }: { game: CloudGame; onPlay: () => void; onFav: () => void; isFav: boolean }) {
   const [imgError, setImgError] = useState(false);
   return (
     <div className="group surface relative overflow-hidden rounded-xl border transition-all hover:scale-[1.03]" style={{ borderColor: "var(--border)" }}>
       <button onClick={onPlay} className="flex w-full flex-col items-center gap-2 p-2">
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg" style={{ background: "var(--surface2)" }}>
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg" style={{ background: "var(--surface2)" }}>
           {!imgError ? (
-            <img src={resolveUrl(game.cover)} alt={game.name} className="h-full w-full object-cover" loading="lazy" onError={() => setImgError(true)} />
+            <img
+              src={game.cover}
+              alt={game.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-2xl">🎮</div>
           )}
@@ -275,56 +196,45 @@ function GameCard({ game, onPlay, onFav, isFav }: { game: Game; onPlay: () => vo
   );
 }
 
-function GamePlayer({ game, onExit }: { game: Game; onExit: () => void }) {
-    const { url: frameSrc, error: loadError } = useGameBlobUrl(game);
-
-  const openAboutBlank = () => {
-    // Opens the game in a new about:blank window so it can't be tab-closed easily.
-    if (!frameSrc) {
-      toast.error("Still loading", { description: "Give the game a second to load first." });
-      return;
-    }
-    const win = window.open("about:blank", "_blank");
-    if (!win) {
-      toast.error("Popup blocked", { description: "Allow popups to use about:blank." });
-      return;
-    }
-    win.document.write(`
-      <!DOCTYPE html><html><head><title>${game.name}</title>
-      <style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#000}iframe{width:100%;height:100%;border:0}</style>
-      </head><body><iframe src="${frameSrc}" allow="fullscreen;gamepad;autoplay"></iframe></body></html>
-    `);
-    win.document.close();
-  };
-
+function GamePlayer({ game, onExit, onLaunch }: { game: CloudGame; onExit: () => void; onLaunch: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-2 text-sm">
           <span className="font-medium">{game.name}</span>
-          {game.author && <span style={{ color: "var(--text-muted)" }}>· {game.author}</span>}
+          {game.dev && <span style={{ color: "var(--text-muted)" }}>· {game.dev}</span>}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={openAboutBlank} className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
-            <FileText className="h-3 w-3" /> about:blank
+          <button
+            onClick={onLaunch}
+            className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2"
+            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+          >
+            <ExternalLink className="h-3 w-3" /> Launch in browser
           </button>
-          <a href={resolveUrl(game.url)} target="_blank" rel="noopener" className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
-            <ExternalLink className="h-3 w-3" /> Open
-          </a>
           <button onClick={onExit} className="rounded-lg border px-3 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
             Exit
           </button>
         </div>
       </div>
-      <div className="relative flex-1 bg-black">
-        {!frameSrc ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--accent)" }} />
-            {loadError && <span className="text-xs" style={{ color: "var(--text-muted)" }}>{loadError}</span>}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8" style={{ background: "var(--bg)" }}>
+        <img src={game.cover} alt={game.name} className="max-h-64 rounded-xl shadow-2xl" referrerPolicy="no-referrer" />
+        <h2 className="text-xl font-bold">{game.name}</h2>
+        <p className="max-w-lg text-center text-sm" style={{ color: "var(--text-muted)" }}>{game.desc}</p>
+        {game.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {game.tags.map((t) => (
+              <span key={t} className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border)" }}>{t}</span>
+            ))}
           </div>
-        ) : (
-          <iframe src={frameSrc} className="h-full w-full border-0" title={game.name} allow="fullscreen; gamepad; autoplay; encrypted-media; pointer-lock" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock" />
         )}
+        <button
+          onClick={onLaunch}
+          className="mt-4 flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all hover:scale-105"
+          style={{ background: "var(--accent)", color: "var(--bg)" }}
+        >
+          <Play className="h-5 w-5 fill-current" /> Play Now
+        </button>
       </div>
     </div>
   );

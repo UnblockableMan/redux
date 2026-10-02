@@ -45,8 +45,24 @@ const scramjet = new ScramjetServiceWorker({
     prefix: basePath + "scramjet/"
 });
 
-self.addEventListener('install',  () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+// SW version — bump this on every sw.js change so browsers pick up the
+// new version immediately (the install event fires when the file changes).
+const SW_VERSION = "redux-v4.2-bareclient";
+
+self.addEventListener('install', (event) => {
+    console.log(`[sw] installing ${SW_VERSION}`);
+    self.skipWaiting();
+});
+self.addEventListener('activate', (event) => {
+    console.log(`[sw] activating ${SW_VERSION}`);
+    event.waitUntil(
+        Promise.all([
+            self.clients.claim(),
+            // Clear all old caches so stale responses don't get served.
+            caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))),
+        ])
+    );
+});
 
 // Known public wisp servers. The first one in the array is the user-configured
 // default; the rest are tried in order if the active transport reports an

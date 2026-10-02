@@ -6,6 +6,7 @@ import { useNav } from "@/store/nav";
 import { useSettings } from "@/store/settings";
 import { withBase } from "@/lib/base";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 // Default shortcuts (favicon-driven). Users can add/remove their own;
 // the list persists in localStorage so the home page stays theirs.
@@ -208,10 +209,10 @@ export function HomeView() {
 
   return (
     <div className="opium-home fade-in relative flex min-h-full flex-col items-center justify-center overflow-hidden p-6 text-center">
-      {/* Top-left brand tag */}
+      {/* Top-left brand tag — inline Logo so colors change with the theme */}
       <div className="absolute left-6 top-6 flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
-        <img src={withBase("logo.svg")} alt="redux" className="h-6 w-auto" style={{ filter: "brightness(0) invert(1) opacity(0.85)" }} />
-        <span className="font-mono">v3.6</span>
+        <Logo className="h-6" />
+        <span className="font-mono">v8</span>
       </div>
 
       {/* Top-right rotating phrase label */}

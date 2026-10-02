@@ -6,6 +6,7 @@ import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
 import { withBase } from "@/lib/base";
 import { SettingsPanel } from "./SettingsPanel";
+import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 
 const BRAND_ICONS = {
@@ -56,7 +57,7 @@ export function ToolBar() {
         >
           {/* Logo */}
           <button onClick={() => setView("home")} className="flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-transform hover:scale-105" title="redux">
-            <img src={withBase("logo.svg")} alt="redux" className="h-7 w-7" />
+            <Logo className="h-7" />
           </button>
 
           <div className={cn("mx-1 flex-none", isHorizontal ? "h-7 w-px" : "w-7 h-px")} style={{ background: "var(--border)" }} />
