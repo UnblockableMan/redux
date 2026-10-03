@@ -1,20 +1,21 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Star, Play, X, ExternalLink, Loader2, Info, Video } from "lucide-react";
+import { Search, Star, Play, X, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useNav } from "@/store/nav";
-import { CINE_CLOUD_GAMES, type CloudGame } from "./cine-cloud-games";
+import { YUKI_GAMES } from "./yuki-games";
 
-// Tutorial video URL — served via jsDelivr from the Cine-Cloud-SRC repo.
-const TUTORIAL_VIDEO = "https://cdn.jsdelivr.net/gh/codiesnutkiss-sudo/Cine-Cloud-SRC@main/src/Tutorial.mp4";
+// YukiOS games catalog — HTML5, DOS, emulators, and Flash games.
+// Sourced from Reeyuki/YukiOS/static (open source).
+// All assets served via jsDelivr CDN.
 
 export function GamesView() {
-  const [games] = useState<CloudGame[]>(CINE_CLOUD_GAMES);
+  const [games] = useState(YUKI_GAMES);
   const [query, setQuery] = useState("");
-  const [playing, setPlaying] = useState<CloudGame | null>(null);
+  const [playing, setPlaying] = useState<typeof YUKI_GAMES[0] | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
-  const [showTutorial, setShowTutorial] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "html5" | "dos" | "emulator" | "flash">("all");
   const setView = useNav((s) => s.setView);
 
   useEffect(() => {
@@ -32,28 +33,27 @@ export function GamesView() {
   };
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return games;
+    let list = games;
+    if (activeTab !== "all") list = list.filter((g) => g.type === activeTab);
+    if (!query.trim()) return list;
     const q = query.toLowerCase();
-    return games.filter((g) =>
+    return list.filter((g) =>
       g.name.toLowerCase().includes(q) ||
-      g.dev.toLowerCase().includes(q) ||
-      g.tags.some((t) => t.toLowerCase().includes(q))
+      g.desc.toLowerCase().includes(q)
     );
-  }, [games, query]);
+  }, [games, query, activeTab]);
 
   const favGames = useMemo(
     () => games.filter((g) => favorites.includes(g.id)),
     [games, favorites],
   );
 
-  const launchGame = (g: CloudGame) => {
-    // Open cloud games in the Browser view via Scramjet so they load
-    // through the proxy (some school networks block raccoongame.com).
+  const launchGame = (g: typeof YUKI_GAMES[0]) => {
     setView("browser");
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: g.url }));
     }, 50);
-    toast.info(`Launching ${g.name}`, { description: "Opening in the proxy browser..." });
+    toast.info(`Launching ${g.name}`, { description: g.desc.slice(0, 80) });
   };
 
   if (playing) {
@@ -65,56 +65,32 @@ export function GamesView() {
       <div className="mb-2 flex items-center gap-3">
         <h1 className="text-2xl font-bold">Games</h1>
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-          {games.length} cloud games · via Cine-Cloud
+          {games.length} games · via YukiOS
         </span>
       </div>
 
-      {/* Tutorial banner — explains the raccoongame.com signup process */}
-      <div className="mb-6 rounded-xl border p-4" style={{ borderColor: "var(--accent)", background: "color-mix(in srgb, var(--accent) 8%, transparent)" }}>
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 flex-none mt-0.5" style={{ color: "var(--accent)" }} />
-          <div className="flex-1">
-            <h2 className="text-sm font-semibold">How to play these games</h2>
-            <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-              These are cloud-streamed AAA games hosted on raccoongame.com. To play them, you need to:
-            </p>
-            <ol className="mt-2 ml-4 list-decimal text-xs space-y-1" style={{ color: "var(--text-muted)" }}>
-              <li>Use the <strong style={{ color: "var(--text)" }}>free email service</strong> (in the Tools or Browser view) to create a throwaway email address.</li>
-              <li>Go to <strong style={{ color: "var(--text)" }}>raccoongame.com</strong> and sign up using that email.</li>
-              <li>Once you verify the email, you'll have full access to all cloud games.</li>
-              <li>Click any game below — it opens in the proxy browser and starts streaming.</li>
-            </ol>
-            <button
-              onClick={() => setShowTutorial(true)}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all hover:scale-105"
-              style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-            >
-              <Video className="h-3.5 w-3.5" /> Watch tutorial video
-            </button>
-          </div>
-        </div>
+      {/* Type tabs */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {([
+          { id: "all", label: "All", count: games.length },
+          { id: "html5", label: "HTML5", count: games.filter((g) => g.type === "html5").length },
+          { id: "dos", label: "DOS", count: games.filter((g) => g.type === "dos").length },
+          { id: "emulator", label: "Emulators", count: games.filter((g) => g.type === "emulator").length },
+          { id: "flash", label: "Flash", count: games.filter((g) => g.type === "flash").length },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${activeTab === t.id ? "scale-105" : "opacity-60 hover:opacity-100"}`}
+            style={{
+              borderColor: activeTab === t.id ? "var(--accent)" : "var(--border)",
+              color: activeTab === t.id ? "var(--accent)" : "var(--text-muted)",
+            }}
+          >
+            {t.label} ({t.count})
+          </button>
+        ))}
       </div>
-
-      {/* Tutorial video modal */}
-      {showTutorial && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6" onClick={() => setShowTutorial(false)}>
-          <div className="relative w-full max-w-3xl rounded-xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
-              <span className="text-sm font-medium">Tutorial: How to sign up for raccoongame.com</span>
-              <button onClick={() => setShowTutorial(false)} className="rounded-lg p-1 hover:surface2"><X className="h-4 w-4" /></button>
-            </div>
-            <video
-              src={TUTORIAL_VIDEO}
-              controls
-              autoPlay
-              className="w-full"
-              style={{ maxHeight: "70vh" }}
-            >
-              Your browser doesn't support video. <a href={TUTORIAL_VIDEO} target="_blank" rel="noopener" style={{ color: "var(--accent)" }}>Download it here</a>.
-            </video>
-          </div>
-        </div>
-      )}
 
       {/* Search */}
       <div className="relative mb-6 max-w-md">
@@ -165,8 +141,19 @@ export function GamesView() {
   );
 }
 
-function GameCard({ game, onPlay, onFav, isFav }: { game: CloudGame; onPlay: () => void; onFav: () => void; isFav: boolean }) {
+function GameCard({ game, onPlay, onFav, isFav }: {
+  game: typeof YUKI_GAMES[0];
+  onPlay: () => void;
+  onFav: () => void;
+  isFav: boolean;
+}) {
   const [imgError, setImgError] = useState(false);
+  const typeBadge: Record<string, string> = {
+    html5: "HTML5",
+    dos: "DOS",
+    emulator: "EMU",
+    flash: "Flash",
+  };
   return (
     <div className="group surface relative overflow-hidden rounded-xl border transition-all hover:scale-[1.03]" style={{ borderColor: "var(--border)" }}>
       <button onClick={onPlay} className="flex w-full flex-col items-center gap-2 p-2">
@@ -183,6 +170,9 @@ function GameCard({ game, onPlay, onFav, isFav }: { game: CloudGame; onPlay: () 
           ) : (
             <div className="flex h-full w-full items-center justify-center text-2xl">🎮</div>
           )}
+          <div className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px]">
+            {typeBadge[game.type] || game.type}
+          </div>
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
             <Play className="h-8 w-8 fill-current" style={{ color: "var(--accent)" }} />
           </div>
@@ -196,13 +186,17 @@ function GameCard({ game, onPlay, onFav, isFav }: { game: CloudGame; onPlay: () 
   );
 }
 
-function GamePlayer({ game, onExit, onLaunch }: { game: CloudGame; onExit: () => void; onLaunch: () => void }) {
+function GamePlayer({ game, onExit, onLaunch }: {
+  game: typeof YUKI_GAMES[0];
+  onExit: () => void;
+  onLaunch: () => void;
+}) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-2 text-sm">
           <span className="font-medium">{game.name}</span>
-          {game.dev && <span style={{ color: "var(--text-muted)" }}>· {game.dev}</span>}
+          <span style={{ color: "var(--text-muted)" }}>· {game.type.toUpperCase()}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -210,7 +204,7 @@ function GamePlayer({ game, onExit, onLaunch }: { game: CloudGame; onExit: () =>
             className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2"
             style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
           >
-            <ExternalLink className="h-3 w-3" /> Launch in browser
+            <ExternalLink className="h-3 w-3" /> Open in browser
           </button>
           <button onClick={onExit} className="rounded-lg border px-3 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
             Exit
@@ -221,13 +215,6 @@ function GamePlayer({ game, onExit, onLaunch }: { game: CloudGame; onExit: () =>
         <img src={game.cover} alt={game.name} className="max-h-64 rounded-xl shadow-2xl" referrerPolicy="no-referrer" />
         <h2 className="text-xl font-bold">{game.name}</h2>
         <p className="max-w-lg text-center text-sm" style={{ color: "var(--text-muted)" }}>{game.desc}</p>
-        {game.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {game.tags.map((t) => (
-              <span key={t} className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border)" }}>{t}</span>
-            ))}
-          </div>
-        )}
         <button
           onClick={onLaunch}
           className="mt-4 flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all hover:scale-105"

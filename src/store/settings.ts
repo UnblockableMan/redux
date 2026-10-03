@@ -38,7 +38,7 @@ export const VIDEO_WALLPAPERS: { id: VideoWallpaperId; label: string; url: strin
 ];
 
 export type ToolbarPos = "top" | "left" | "right" | "bottom";
-export type WallpaperId = "none" | "grid" | "dots" | "aurora" | "waves" | "mountains" | "gradient1" | "gradient2" | "noise" | "stars";
+export type WallpaperId = "none" | "grid" | "dots" | "aurora" | "waves" | "mountains" | "gradient1" | "gradient2" | "noise" | "stars" | "yuki-kath" | "yuki-nier" | "yuki-mint" | "yuki-corndog" | "yuki-end4" | "yuki-redwin10" | "yuki-win10" | "yuki-win11" | "yuki-win11dark" | "yuki-win7" | "yuki-xp" | "yuki-w1" | "yuki-w2" | "yuki-w3" | "yuki-w4" | "yuki-w5";
 
 interface Settings {
   theme: ThemeId;
@@ -221,6 +221,23 @@ export const WALLPAPERS: { id: WallpaperId; label: string; css: string }[] = [
   { id: "gradient2", label: "Gradient 2", css: "background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(255,255,255,0.02) 100%);" },
   { id: "noise", label: "Noise", css: "background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22 opacity=%220.03%22/%3E%3C/svg%3E');" },
   { id: "stars", label: "Stars", css: "background-image: radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.15), transparent), radial-gradient(2px 2px at 60% 70%, rgba(255,255,255,0.1), transparent), radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.2), transparent), radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.1), transparent); background-size: 200px 200px;" },
+  // YukiOS image wallpapers — served via jsDelivr CDN
+  { id: "yuki-kath", label: "Kath", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/Kath.jpg'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-nier", label: "Nier", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/nier.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-mint", label: "Mint", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/mint.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-corndog", label: "Corndog", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/corndog.jpg'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-end4", label: "End", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/end_4.jpg'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-redwin10", label: "Red Win10", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/redwin10.jpg'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-win10", label: "Windows 10", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/win10.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-win11", label: "Windows 11", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/win11.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-win11dark", label: "Win 11 Dark", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/win11dark.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-win7", label: "Windows 7", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/win7.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-xp", label: "Windows XP", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/xp.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-w1", label: "Yuki 1", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/wallpaper1.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-w2", label: "Yuki 2", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/wallpaper2.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-w3", label: "Yuki 3", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/wallpaper3.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-w4", label: "Yuki 4", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/wallpaper4.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
+  { id: "yuki-w5", label: "Yuki 5", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/wallpaper5.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
 ];
 
 const DEFAULT_WISP = "wss://wisp.mercurywork.shop:443";
