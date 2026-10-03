@@ -62,6 +62,16 @@ const ROTATING_PHRASES: string[] = [
   "#wifedat",
   "Noah Noah pls Collab with me pls pls pls",
   "any other proxies tryna Collab??? #wheredeyat?",
+  "Welcome to Velara!",
+  "Velara > 55gms",
+  "watermelon > chicken",
+  "axon sucks, fight me!",
+  "i dont think this is a good idea",
+  "you didnt even see this",
+  "what did you just do",
+  "i like the sound of this",
+  "i dont know what this is",
+  "ahahahhah",
 ];
 
 const SHORTCUTS_KEY = "opium-shortcuts";
