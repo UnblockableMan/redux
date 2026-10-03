@@ -12,8 +12,8 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 export const metadata: Metadata = {
-  title: "redux v8",
-  description: "redux v8 static web proxy hub games music browser anime cloud gaming inspired by opium",
+  title: "redux V10",
+  description: "redux V10 static web proxy hub games music browser anime cloud gaming inspired by opium",
   icons: { icon: `${BASE_PATH}/logo.svg` },
 };
 

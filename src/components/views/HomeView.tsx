@@ -22,57 +22,17 @@ const DEFAULT_SHORTCUTS: Shortcut[] = [
   { name: "Netflix", url: "https://netflix.com", icon: "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2023.ico" },
 ];
 
-// Cloud games — embedded via iframe. Each opens a real streaming service.
+// Cloud games — from viroda1/anchor. Each opens in the Browser view via Scramjet.
 interface CloudGame { name: string; url: string; icon: string; note: string; }
 const CLOUD_GAMES: CloudGame[] = [
-  {
-    name: "Roblox",
-    url: "https://nowgg.fun/apps/a/19900/b.html",
-    icon: "https://www.roblox.com/favicon.ico",
-    note: "Cloud-streamed via now.gg — no install, plays in browser.",
-  },
-  {
-    name: "GeForce NOW",
-    url: "https://play.geforcenow.com/mall/#/loginwall",
-    icon: "https://play.geforcenow.com/favicon.ico",
-    note: "NVIDIA's cloud gaming service. Steam/Epic library in the cloud.",
-  },
-  {
-    name: "Xbox Cloud",
-    url: "https://www.xbox.com/play",
-    icon: "https://www.xbox.com/favicon.ico",
-    note: "Xbox Game Pass cloud streaming (requires Game Pass Ultimate).",
-  },
-  {
-    name: "Steam",
-    url: "https://steamcommunity.com",
-    icon: "https://store.steampowered.com/favicon.ico",
-    note: "Steam community — profile, friends, marketplace in the browser.",
-  },
-  {
-    name: "itch.io",
-    url: "https://itch.io/games/html5",
-    icon: "https://static.itch.io/favicon.ico",
-    note: "Indie HTML5 games, browse and play in-browser.",
-  },
-  {
-    name: "Poki",
-    url: "https://poki.com",
-    icon: "https://poki.com/favicon.ico",
-    note: "Casual browser games, big catalog of HTML5 picks.",
-  },
-  {
-    name: "CrazyGames",
-    url: "https://crazygames.com",
-    icon: "https://crazygames.com/favicon.ico",
-    note: "Another huge HTML5 game portal.",
-  },
-  {
-    name: "Yandex Games",
-    url: "https://yandex.com/games",
-    icon: "https://yandex.com/favicon.ico",
-    note: "Free browser games, mobile and desktop.",
-  },
+  { name: "Roblox", url: "https://nowgg.fun/apps/a/19900/b.html", icon: "https://icons.duckduckgo.com/ip3/roblox.com.ico", note: "Cloud-streamed via now.gg" },
+  { name: "Fortnite", url: "https://nowgg.fun/apps/fortnite/b.html", icon: "https://icons.duckduckgo.com/ip3/fortnite.com.ico", note: "Play Fortnite in browser" },
+  { name: "Rocket League", url: "https://nowgg.fun/apps/rocket-league/b.html", icon: "https://icons.duckduckgo.com/ip3/rocketleague.com.ico", note: "Soccer with cars" },
+  { name: "GeForce NOW", url: "https://play.geforcenow.com/mall/#/loginwall", icon: "https://icons.duckduckgo.com/ip3/geforcenow.com.ico", note: "NVIDIA cloud gaming" },
+  { name: "Xbox Cloud", url: "https://www.xbox.com/play", icon: "https://icons.duckduckgo.com/ip3/xbox.com.ico", note: "Xbox Game Pass streaming" },
+  { name: "Steam", url: "https://steamcommunity.com", icon: "https://icons.duckduckgo.com/ip3/steampowered.com.ico", note: "Steam community" },
+  { name: "itch.io", url: "https://itch.io/games/html5", icon: "https://icons.duckduckgo.com/ip3/itch.io.ico", note: "Indie HTML5 games" },
+  { name: "Poki", url: "https://poki.com", icon: "https://icons.duckduckgo.com/ip3/poki.com.ico", note: "Casual browser games" },
 ];
 
 // Rotating footer phrases — cycled every 4 seconds. The vibe is intentionally
@@ -212,7 +172,7 @@ export function HomeView() {
       {/* Top-left brand tag — inline Logo so colors change with the theme */}
       <div className="absolute left-6 top-6 flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
         <Logo className="h-6" />
-        <span className="font-mono">v8</span>
+        <span className="font-mono">v10</span>
       </div>
 
       {/* Top-right rotating phrase label */}
@@ -250,8 +210,28 @@ export function HomeView() {
         </button>
       )}
 
-      {/* (Cloud gaming + shortcuts grids REMOVED per user request — use the
-          toolbar at the top to access Games/Music/Browser/Anime/Forms/Ext.) */}
+      {/* Cloud gaming tiles — Roblox, Fortnite, Rocket League, PS5, Xbox, etc.
+          from viroda1/anchor. Opens in the Browser view via Scramjet proxy. */}
+      <div className="opium-section-title w-full max-w-3xl text-left">cloud gaming</div>
+      <div className="grid w-full max-w-3xl grid-cols-2 gap-3 pb-24 sm:grid-cols-4">
+        {CLOUD_GAMES.map((g) => (
+          <button
+            key={g.name}
+            onClick={() => {
+              setView("browser");
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: g.url }));
+              }, 50);
+              toast.info(`Loading ${g.name}`, { description: g.note });
+            }}
+            className="opium-shortcut"
+            title={g.note}
+          >
+            <img src={g.icon} alt="" referrerPolicy="no-referrer" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+            <span>{g.name}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Bottom footer — time on the left, rotating phrase on the right. */}
       <div className="opium-footer fixed bottom-4 left-0 right-0 z-30 flex items-center justify-between px-6 text-xs" style={{ color: "var(--text-muted)" }}>
