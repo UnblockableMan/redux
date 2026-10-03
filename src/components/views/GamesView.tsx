@@ -7,51 +7,21 @@ import { useNav } from "@/store/nav";
 import { CLOUD_GAMES, type CloudGame } from "./cloud-games";
 import { UBG_GAMES, type HtmlGame } from "./ubg-games";
 import { PETEZAH_GAMES, type PeteZahGame } from "./petezah-games";
+import { CARTEL_GAMES, type CartelGame } from "./cartel-games";
 
 const RACCOON_URL = "https://www.raccoongame.com/wap/dist/#/platform/cloudgame/gamedetail";
 
-// Unified game type.
 interface UnifiedGame {
-  id: string;
-  name: string;
-  desc: string;
-  cover: string;
-  tags: string[];
-  source: "cloud" | "html5" | "petezah";
-  url?: string;
-  gameKey?: string;
-  htmlUrl?: string;
+  id: string; name: string; desc: string; cover: string; tags: string[];
+  source: "cloud" | "html5" | "petezah" | "cartel";
+  gameKey?: string; htmlUrl?: string;
 }
 
-// Merge all three catalogs.
 const ALL_GAMES: UnifiedGame[] = [
-  ...PETEZAH_GAMES.map((g) => ({
-    id: `pz-${g.id}`,
-    name: g.name,
-    desc: "",
-    cover: g.cover,
-    tags: ["HTML5"],
-    source: "petezah" as const,
-    htmlUrl: g.url,
-  })),
-  ...UBG_GAMES.map((g) => ({
-    id: `ubg-${g.id}`,
-    name: g.name,
-    desc: "",
-    cover: g.cover,
-    tags: ["HTML5", "Browser"],
-    source: "html5" as const,
-    htmlUrl: g.url,
-  })),
-  ...CLOUD_GAMES.map((g) => ({
-    id: `cc-${g.id}`,
-    name: g.name,
-    desc: g.desc,
-    cover: g.cover,
-    tags: g.tags,
-    source: "cloud" as const,
-    gameKey: g.game_key,
-  })),
+  ...PETEZAH_GAMES.map((g) => ({ id: `pz-${g.id}`, name: g.name, desc: "", cover: g.cover, tags: ["HTML5"], source: "petezah" as const, htmlUrl: g.url })),
+  ...CARTEL_GAMES.map((g) => ({ id: `ct-${g.id}`, name: g.name, desc: "", cover: "", tags: ["HTML5", "Cartel"], source: "cartel" as const, htmlUrl: g.url })),
+  ...UBG_GAMES.map((g) => ({ id: `ubg-${g.id}`, name: g.name, desc: "", cover: g.cover, tags: ["HTML5"], source: "html5" as const, htmlUrl: g.url })),
+  ...CLOUD_GAMES.map((g) => ({ id: `cc-${g.id}`, name: g.name, desc: g.desc, cover: g.cover, tags: g.tags, source: "cloud" as const, gameKey: g.game_key })),
 ];
 
 // Blob URL hook for HTML5 games — jsDelivr serves .html as text/plain,
@@ -106,7 +76,7 @@ export function GamesView() {
   const [query, setQuery] = useState("");
   const [playing, setPlaying] = useState<UnifiedGame | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "html5" | "petezah" | "cloud">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "petezah" | "cartel" | "html5" | "cloud">("all");
   const setView = useNav((s) => s.setView);
 
   useEffect(() => {
@@ -125,8 +95,9 @@ export function GamesView() {
 
   const filtered = useMemo(() => {
     let list = games;
-    if (activeTab === "html5") list = list.filter((g) => g.source === "html5");
     if (activeTab === "petezah") list = list.filter((g) => g.source === "petezah");
+    if (activeTab === "cartel") list = list.filter((g) => g.source === "cartel");
+    if (activeTab === "html5") list = list.filter((g) => g.source === "html5");
     if (activeTab === "cloud") list = list.filter((g) => g.source === "cloud");
     if (!query.trim()) return list;
     const q = query.toLowerCase();
@@ -142,7 +113,7 @@ export function GamesView() {
       setTimeout(() => window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: url })), 50);
       toast.info(`Launching ${g.name}`, { description: "Opening in the proxy browser..." });
     } else {
-      // Both "html5" and "petezah" sources use the blob URL player
+      // html5, petezah, and cartel sources all use the blob URL player
       setPlaying(g);
     }
   };
@@ -165,6 +136,7 @@ export function GamesView() {
         {([
           { id: "all", label: "All Games", count: games.length },
           { id: "petezah", label: "PeteZah", count: games.filter((g) => g.source === "petezah").length },
+          { id: "cartel", label: "Cartel", count: games.filter((g) => g.source === "cartel").length },
           { id: "html5", label: "UBG HTML5", count: games.filter((g) => g.source === "html5").length },
           { id: "cloud", label: "Cloud", count: games.filter((g) => g.source === "cloud").length },
         ] as const).map((t) => (

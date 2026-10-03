@@ -5,6 +5,58 @@ import { Wrench, ExternalLink, BookOpen, Lock, Lightbulb, ChevronDown, ChevronRi
 import { useNav } from "@/store/nav";
 import { toast } from "sonner";
 
+// Prank tools — history flooder, tab spinner, etc. Each opens in a new tab.
+interface PrankTool { name: string; icon: string; desc: string; code: string; }
+const PRANK_TOOLS: PrankTool[] = [
+  {
+    name: "History Flooder",
+    icon: "📜",
+    desc: "Floods the browser history with whatever text you enter. The back button becomes useless.",
+    code: `<!DOCTYPE html><html><head><title>History Flooder</title><style>body{background:#1a1a2e;color:#fff;font-family:monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}input,button{padding:10px;margin:5px;font-size:16px;border-radius:8px;border:1px solid #444;background:#16213e;color:#fff}button{cursor:pointer;background:#e94560}</style></head><body><h1>History Flooder</h1><input id="txt" value="redux was here" placeholder="Text to flood"><input id="num" type="number" value="100" placeholder="Count"><button onclick="var t=document.getElementById('txt').value;var n=parseInt(document.getElementById('num').value)||100;var i=0;function f(){if(i>=n)return;history.pushState({},t,'/'+t+'-'+i);i++;setTimeout(f,10)}f()">Flood!</button><p id="done"></p></body></html>`,
+  },
+  {
+    name: "Tab Spinner",
+    icon: "🌀",
+    desc: "Opens spinning tabs that change title rapidly. Chaotic.",
+    code: `<!DOCTYPE html><html><head><title>Spinner</title><style>body{background:#000;color:#0f0;font-family:monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}</style></head><body><h1>Tab Spinner</h1><button onclick="var s='';setInterval(function(){s=Math.random().toString(36).substr(2,8);document.title=s;},50)">Spin title</button></body></html>`,
+  },
+  {
+    name: "Fake Update",
+    icon: "💻",
+    desc: "Shows a fake Windows update screen. Prank your teacher.",
+    code: `<!DOCTYPE html><html><head><title>Windows Update</title><style>body{margin:0;background:#0078d4;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}.pct{font-size:48px;margin:20px}.bar{width:300px;height:6px;background:rgba(255,255,255,0.3);border-radius:3px;overflow:hidden}.fill{height:100%;background:#fff;width:0;transition:width 0.5s}.spin{width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:s 1s linear infinite;margin:20px}@keyframes s{to{transform:rotate(360deg)}}</style></head><body><div class="spin"></div><div class="pct" id="p">0%</div><div class="bar"><div class="fill" id="f"></div></div><p>Working on updates</p><p>Don't turn off your PC</p><script>var p=0;setInterval(function(){p+=Math.random()*5;if(p>100)p=0;document.getElementById('p').textContent=Math.floor(p)+'%';document.getElementById('f').style.width=p+'%'},500)</script></body></html>`,
+  },
+  {
+    name: "Matrix Rain",
+    icon: "💚",
+    desc: "Classic Matrix digital rain effect. Full screen green characters.",
+    code: `<!DOCTYPE html><html><head><title>Matrix</title><style>body{margin:0;overflow:hidden;background:#000}canvas{display:block}</style></head><body><canvas id="c"></canvas><script>var c=document.getElementById('c');var ctx=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;var fs=16;var cols=Math.floor(c.width/fs);var drops=Array(cols).fill(0);var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*';function draw(){ctx.fillStyle='rgba(0,0,0,0.05)';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#0f0';ctx.font=fs+'px monospace';for(var i=0;i<drops.length;i++){var t=chars[Math.floor(Math.random()*chars.length)];ctx.fillText(t,i*fs,drops[i]*fs);if(drops[i]*fs>c.height&&Math.random()>0.975)drops[i]=0;drops[i]++}}setInterval(draw,50)</script></body></html>`,
+  },
+  {
+    name: "Snake Game",
+    icon: "🐍",
+    desc: "Play Snake in a popup. Classic distraction.",
+    code: `<!DOCTYPE html><html><head><title>Snake</title><style>body{margin:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}canvas{border:2px solid #e94560;background:#16213e}</style></head><body><canvas id="c" width="400" height="400"></canvas><script>var c=document.getElementById('c').getContext('2d');var s=[{x:200,y:200}];var d={x:0,y:0};var f={x:100,y:100};var g=20;function loop(){s.unshift({x:s[0].x+d.x*g,y:s[0].y+d.y*g});if(s[0].x<0||s[0].x>=400||s[0].y<0||s[0].y>=400||s.slice(1).some(p=>p.x==s[0].x&&p.y==s[0].y)){s=[{x:200,y:200}];d={x:0,y:0}}if(s[0].x==f.x&&s[0].y==f.y){f={x:Math.floor(Math.random()*20)*g,y:Math.floor(Math.random()*20)*g}}else{s.pop()}c.fillStyle='#16213e';c.fillRect(0,0,400,400);c.fillStyle='#e94560';c.fillRect(f.x,f.y,g-2,g-2);c.fillStyle='#0f0';s.forEach(p=>c.fillRect(p.x,p.y,g-2,g-2))}setInterval(loop,100);addEventListener('keydown',e=>{var m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(m)d={x:m[0]*g,y:m[1]*g}})</script></body></html>`,
+  },
+  {
+    name: "Screen Flicker",
+    icon: "⚡",
+    desc: "Flickers the screen colors rapidly. Annoying but harmless.",
+    code: `<!DOCTYPE html><html><head><title>Flicker</title><style>body{margin:0}</style></head><body><script>var colors=['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff'];var i=0;setInterval(function(){document.body.style.background=colors[i%colors.length];i++},50)</script></body></html>`,
+  },
+];
+
+// Bookmarklets — run inline via eval.
+interface Bookmarklet { name: string; icon: string; desc: string; code: string; }
+const BOOKMARKLETS: Bookmarklet[] = [
+  { name: "Edit Page", icon: "✏️", desc: "Make the current page editable. Click text and type.", code: "document.body.contentEditable='true';document.designMode='on';void 0" },
+  { name: "Dark Mode", icon: "🌙", desc: "Force dark mode on any page via CSS filter.", code: "document.documentElement.style.filter='invert(1) hue-rotate(180deg)';void 0" },
+  { name: "Remove Images", icon: "🚫", desc: "Strip all images from the page. Instant text mode.", code: "document.querySelectorAll('img').forEach(e=>e.remove());void 0" },
+  { name: "Show Passwords", icon: "🔑", desc: "Reveal all hidden password fields as text.", code: "document.querySelectorAll('input[type=password]').forEach(e=>e.type='text');void 0" },
+  { name: "Spin Everything", icon: "🌀", desc: "Makes every element on the page spin. Chaotic.", code: "document.querySelectorAll('*').forEach(e=>{e.style.animation='spin 1s linear infinite'});var s=document.createElement('style');s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(s);void 0" },
+  { name: "Gravity Drop", icon: "🍎", desc: "All elements fall to the bottom of the screen.", code: "var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/gravity@1.0.0/gravity.min.js';document.body.appendChild(s);void 0" },
+];
+
 // Study cheats — open in Browser view via Scramjet proxy.
 interface Cheat {
   name: string;
@@ -214,6 +266,70 @@ export function ToolsView() {
                 <div className="truncate text-xs" style={{ color: "var(--text-muted)" }}>{c.desc}</div>
               </div>
               <ExternalLink className="h-4 w-4 flex-none opacity-50 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }} />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Prank tools — history flooder, tab spinner, etc. */}
+      <section>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-base">🃏</span>
+          <h2 className="text-lg font-semibold">Prank Tools</h2>
+        </div>
+        <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
+          Run these tools to flood history, spin tabs, or mess with the browser. Each runs instantly in a new tab.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {PRANK_TOOLS.map((t) => (
+            <button
+              key={t.name}
+              onClick={() => {
+                const w = window.open("about:blank", "_blank");
+                if (!w) { toast.error("Popup blocked"); return; }
+                w.document.write(t.code);
+                w.document.close();
+                toast.success(`Launched ${t.name}`);
+              }}
+              className="group surface flex items-center gap-3 rounded-xl border p-4 text-left transition-all hover:scale-[1.02]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <span className="text-2xl">{t.icon}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{t.name}</div>
+                <div className="truncate text-xs" style={{ color: "var(--text-muted)" }}>{t.desc}</div>
+              </div>
+              <ExternalLink className="h-4 w-4 flex-none opacity-50 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }} />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Bookmarklets — drag to bookmark bar or click to run */}
+      <section>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-base">📌</span>
+          <h2 className="text-lg font-semibold">Bookmarklets</h2>
+        </div>
+        <p className="mb-4 text-sm" style={{ color: "var(--text-muted)" }}>
+          Click to run instantly, or drag to your bookmark bar for quick access.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {BOOKMARKLETS.map((b) => (
+            <button
+              key={b.name}
+              onClick={() => {
+                try { eval(b.code); toast.success(`Ran ${b.name}`); }
+                catch (e: any) { toast.error("Failed", { description: e?.message }); }
+              }}
+              className="group surface flex items-center gap-3 rounded-xl border p-4 text-left transition-all hover:scale-[1.02]"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <span className="text-2xl">{b.icon}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{b.name}</div>
+                <div className="truncate text-xs" style={{ color: "var(--text-muted)" }}>{b.desc}</div>
+              </div>
             </button>
           ))}
         </div>

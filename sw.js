@@ -47,7 +47,7 @@ const scramjet = new ScramjetServiceWorker({
 
 // SW version — bump this on every sw.js change so browsers pick up the
 // new version immediately (the install event fires when the file changes).
-const SW_VERSION = "redux-v10";
+const SW_VERSION = "redux-v10.4";
 
 self.addEventListener('install', (event) => {
     console.log(`[sw] installing ${SW_VERSION}`);
