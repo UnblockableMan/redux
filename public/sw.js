@@ -18,6 +18,7 @@ const ADBLOCK = {
 };
 
 function isAdBlocked(url) {
+    if (!privacyConfig.blockAds) return false;
     const urlStr = url.toString();
     for (const pattern of ADBLOCK.blocked) {
         const regexPattern = pattern.replace(/\*/g,'.*').replace(/\./g,'\\.').replace(/\?/g,'\\?');
@@ -47,7 +48,7 @@ const scramjet = new ScramjetServiceWorker({
 
 // SW version — bump this on every sw.js change so browsers pick up the
 // new version immediately (the install event fires when the file changes).
-const SW_VERSION = "redux-v10.4-fast";
+const SW_VERSION = "redux-v10.7-fixes";
 
 self.addEventListener('install', (event) => {
     console.log(`[sw] installing ${SW_VERSION}`);
@@ -145,6 +146,7 @@ const FALLBACK_WISP_SERVERS = [
 ];
 
 let wispConfig = { wispurl: null, autoswitch: true };
+let privacyConfig = { blockAds: true, blockTrackers: true, hideReferrer: true, doNotTrack: true };
 let resolveConfigReady;
 const configReadyPromise = new Promise(resolve => resolveConfigReady = resolve);
 
@@ -158,6 +160,15 @@ self.addEventListener("message", ({ data }) => {
         if (data.wispurl) wispConfig.wispurl = data.wispurl;
         if (typeof data.autoswitch !== 'undefined') wispConfig.autoswitch = data.autoswitch;
         if (wispConfig.wispurl && resolveConfigReady) { resolveConfigReady(); resolveConfigReady = null; }
+    }
+    if (data.type === "privacy-config") {
+        privacyConfig = {
+            blockAds: data.blockAds ?? true,
+            blockTrackers: data.blockTrackers ?? true,
+            hideReferrer: data.hideReferrer ?? true,
+            doNotTrack: data.doNotTrack ?? true,
+        };
+        console.log("[sw] privacy config updated", privacyConfig);
     }
     if (data.type === "get-status") {
         // Allow the page to query SW status for diagnostics.

@@ -19,7 +19,9 @@ export type ThemeId =
   | "blackout"   // user-pick: blackout
   | "greyscale"  // user-pick: greyscale (was "grey", renamed)
   | "invert"     // user-pick: invert
-  | "unnatural"  // user-pick: "unnatural eye of the dead internet" — blue/white/black tri-tone
+  | "unnatural"  // blue/white/black tri-tone
+  | "minecraft"  // Minecraft — green/brown blocky
+  | "roblox"     // Roblox — red/gray
   ;
 
 export type VideoWallpaperId = "none" | "blackhole" | "rainycity" | "gojosukuna" | "minecraft" | "snowfox" | "f1" | "cozyfox" | "hunt" | "custom";
@@ -160,7 +162,7 @@ export const STARTER_EXTENSIONS: ExtDef[] = [
   },
 ];
 
-export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; text: string; textMuted: string; accent: string; border: string }[] = [
+export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; text: string; textMuted: string; accent: string; border: string; fontFamily?: string }[] = [
   // The great theme purge of v3.9 — kept only these 15 hand-picked by the user.
   // Each one has a distinct visual identity; no filler.
 
@@ -207,7 +209,13 @@ export const THEMES: { id: ThemeId; label: string; bg: string; surface: string; 
   { id: "invert", label: "Invert", bg: "#ffffff", surface: "#f0f0f0", text: "#000000", textMuted: "#666666", accent: "#000000", border: "#d0d0d0" },
 
   // Unnatural — "unnatural eye of the dead internet": blue + white + black tri-tone
-  { id: "unnatural", label: "Unnatural", bg: "#000014", surface: "#000028", text: "#ffffff", textMuted: "#5555aa", accent: "#0080ff", border: "#000044" },
+  { id: "unnatural", label: "Unnatural", bg: "#000014", surface: "#000028", text: "#ffffff", textMuted: "#5555aa", accent: "#0080ff", border: "#000044", fontFamily: "'Courier New', monospace" },
+
+  // Minecraft — green/brown blocky. Uses monospace pixel font.
+  { id: "minecraft", label: "Minecraft", bg: "#1a1a0d", surface: "#2d2d1a", text: "#e0e0c8", textMuted: "#7a7a5a", accent: "#5fb04a", border: "#3a3a1e", fontFamily: "'Courier New', 'Lucida Console', monospace" },
+
+  // Roblox — red/gray. Uses a bold sans-serif.
+  { id: "roblox", label: "Roblox", bg: "#1a1a1a", surface: "#242424", text: "#ffffff", textMuted: "#999999", accent: "#e2231a", border: "#333333", fontFamily: "'Helvetica Neue', Arial, sans-serif" },
 ];
 
 export const WALLPAPERS: { id: WallpaperId; label: string; css: string }[] = [

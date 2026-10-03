@@ -8,6 +8,10 @@ export function ThemeApplier() {
   const wallpaper = useSettings((s) => s.wallpaper);
   const cloakTitle = useSettings((s) => s.cloakTitle);
   const cloakIcon = useSettings((s) => s.cloakIcon);
+  const blockAds = useSettings((s) => s.blockAds);
+  const blockTrackers = useSettings((s) => s.blockTrackers);
+  const hideReferrer = useSettings((s) => s.hideReferrer);
+  const doNotTrack = useSettings((s) => s.doNotTrack);
 
   useEffect(() => {
     const t = THEMES.find((x) => x.id === theme) ?? THEMES[0];
@@ -19,28 +23,52 @@ export function ThemeApplier() {
     root.style.setProperty("--text-muted", t.textMuted);
     root.style.setProperty("--accent", t.accent);
     root.style.setProperty("--border", t.border);
+    if (t.fontFamily) {
+      root.style.setProperty("--font-theme", t.fontFamily);
+      document.body.style.fontFamily = t.fontFamily;
+    } else {
+      root.style.setProperty("--font-theme", "inherit");
+      document.body.style.fontFamily = "";
+    }
   }, [theme]);
 
   useEffect(() => {
     const w = WALLPAPERS.find((x) => x.id === wallpaper) ?? WALLPAPERS[0];
-    document.body.setAttribute("style", w.css);
+    if (w.css) {
+      const div = document.createElement("div");
+      div.style.cssText = w.css;
+      const computed = div.style;
+      ["background", "background-image", "background-size", "background-position",
+       "background-repeat", "background-attachment", "opacity"].forEach(p =>
+        document.body.style.removeProperty(p));
+      for (let i = 0; i < computed.length; i++) {
+        document.body.style.setProperty(computed[i], computed.getPropertyValue(computed[i]));
+      }
+    } else {
+      document.body.style.background = "";
+    }
   }, [wallpaper]);
 
+  // Send privacy settings to the SW so it can actually apply them.
   useEffect(() => {
-    document.title = cloakTitle || "redux.";
-  }, [cloakTitle]);
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "privacy-config",
+        blockAds, blockTrackers, hideReferrer, doNotTrack,
+      });
+    }
+  }, [blockAds, blockTrackers, hideReferrer, doNotTrack]);
+
+  useEffect(() => { document.title = cloakTitle || "redux V10"; }, [cloakTitle]);
 
   useEffect(() => {
     const icon: HTMLLinkElement | null = document.querySelector("link[rel='icon']");
     if (cloakIcon) {
       if (!icon) {
         const ni = document.createElement("link");
-        ni.rel = "icon";
-        ni.href = cloakIcon;
+        ni.rel = "icon"; ni.href = cloakIcon;
         document.head.appendChild(ni);
-      } else {
-        icon.href = cloakIcon;
-      }
+      } else { icon.href = cloakIcon; }
     }
   }, [cloakIcon]);
 
