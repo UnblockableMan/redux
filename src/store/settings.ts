@@ -240,7 +240,7 @@ export const WALLPAPERS: { id: WallpaperId; label: string; css: string }[] = [
   { id: "yuki-w5", label: "Yuki 5", css: "background-image: url('https://cdn.jsdelivr.net/gh/Reeyuki/YukiOS@main/static/wallpapers/wallpaper5.webp'); background-size: cover; background-position: center; opacity: 0.3;" },
 ];
 
-const DEFAULT_WISP = "wss://wisp.mercurywork.shop:443";
+const DEFAULT_WISP = "wss://petezahgames.com/wisp/";
 
 export const useSettings = create<Settings>()(
   persist(

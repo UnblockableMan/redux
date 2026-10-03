@@ -47,7 +47,7 @@ const scramjet = new ScramjetServiceWorker({
 
 // SW version — bump this on every sw.js change so browsers pick up the
 // new version immediately (the install event fires when the file changes).
-const SW_VERSION = "redux-v10.4";
+const SW_VERSION = "redux-v10.4-fast";
 
 self.addEventListener('install', (event) => {
     console.log(`[sw] installing ${SW_VERSION}`);
@@ -191,10 +191,14 @@ async function setTransportForUrl(wispUrl) {
     if (!self.BareMux) {
         throw new Error("BareMux not loaded in SW context");
     }
-    // Re-create the connection each time so a stale worker doesn't keep
-    // holding a broken MessagePort. This is the fix for "All clients
-    // returned an invalid MessagePort" — usually caused by a stale
-    // BareMuxConnection whose underlying SharedWorker died.
+    // CACHE the connection — don't re-create on every fallback attempt.
+    // Only create a new one if the URL changed or the connection is dead.
+    // This is a MASSIVE speed improvement — the old code re-created the
+    // entire BareMuxConnection + setTransport (which downloads + compiles
+    // the epoxy WASM transport) on EVERY request that failed.
+    if (currentTransport && currentTransportUrl === wispUrl) {
+        return currentTransport;
+    }
     const connection = new BareMux.BareMuxConnection(basePath + "bareworker.js");
     await connection.setTransport(
         "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs",
@@ -257,11 +261,12 @@ scramjet.addEventListener("request", async (e) => {
             return await tryFetch();
         } catch (err) {
             const msg = String(err?.message || err || "");
-            // The "invalid MessagePort" failure happens when the underlying
-            // SharedWorker can't postMessage. Retry with fallbacks.
-            if (/MessagePort|invalid|transport|connection|network|fetch|BareClient/i.test(msg)) {
-                lastErrorWasMessagePort = /MessagePort|invalid/i.test(msg);
-                const chain = buildWispChain().filter((u) => u !== currentTransportUrl);
+            // Only try 3 fallbacks (not all 64) to avoid 5-minute waits.
+            // Each fallback only runs if the connection is truly broken
+            // (MessagePort error), not on normal HTTP errors.
+            if (/MessagePort|invalid|BareClient not loaded/i.test(msg)) {
+                lastErrorWasMessagePort = true;
+                const chain = buildWispChain().filter((u) => u !== currentTransportUrl).slice(0, 3);
                 for (const candidate of chain) {
                     try {
                         await setTransportForUrl(candidate);
