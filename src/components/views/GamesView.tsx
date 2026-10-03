@@ -1,21 +1,23 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Star, Play, X, ExternalLink } from "lucide-react";
+import { Search, Star, Play, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useNav } from "@/store/nav";
-import { YUKI_GAMES } from "./yuki-games";
+import { CLOUD_GAMES, type CloudGame } from "./cloud-games";
 
-// YukiOS games catalog — HTML5, DOS, emulators, and Flash games.
-// Sourced from Reeyuki/YukiOS/static (open source).
-// All assets served via jsDelivr CDN.
+// Cloud games from kmaifdifik-cpu/mathstudypractice (stratus-api).
+// 225 AAA/indie games via RaccoonGame cloud platform.
+// Each game streams via raccoongame.com — opens in the Browser view
+// through the Scramjet proxy.
+
+const RACCOON_URL = "https://www.raccoongame.com/wap/dist/#/platform/cloudgame/gamedetail";
 
 export function GamesView() {
-  const [games] = useState(YUKI_GAMES);
+  const [games] = useState<CloudGame[]>(CLOUD_GAMES);
   const [query, setQuery] = useState("");
-  const [playing, setPlaying] = useState<typeof YUKI_GAMES[0] | null>(null);
+  const [playing, setPlaying] = useState<CloudGame | null>(null);
   const [favorites, setFavorites] = useState<number[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "html5" | "dos" | "emulator" | "flash">("all");
   const setView = useNav((s) => s.setView);
 
   useEffect(() => {
@@ -33,27 +35,28 @@ export function GamesView() {
   };
 
   const filtered = useMemo(() => {
-    let list = games;
-    if (activeTab !== "all") list = list.filter((g) => g.type === activeTab);
-    if (!query.trim()) return list;
+    if (!query.trim()) return games;
     const q = query.toLowerCase();
-    return list.filter((g) =>
+    return games.filter((g) =>
       g.name.toLowerCase().includes(q) ||
-      g.desc.toLowerCase().includes(q)
+      g.desc.toLowerCase().includes(q) ||
+      g.tags.some((t) => t.toLowerCase().includes(q))
     );
-  }, [games, query, activeTab]);
+  }, [games, query]);
 
   const favGames = useMemo(
     () => games.filter((g) => favorites.includes(g.id)),
     [games, favorites],
   );
 
-  const launchGame = (g: typeof YUKI_GAMES[0]) => {
+  const launchGame = (g: CloudGame) => {
+    // Each game has a game_key — construct the RaccoonGame URL.
+    const url = `${RACCOON_URL}?gid=${g.game_key}&name=${encodeURIComponent(g.name)}`;
     setView("browser");
     setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: g.url }));
+      window.dispatchEvent(new CustomEvent("redux-browser-init", { detail: url }));
     }, 50);
-    toast.info(`Launching ${g.name}`, { description: g.desc.slice(0, 80) });
+    toast.info(`Launching ${g.name}`, { description: "Opening in the proxy browser..." });
   };
 
   if (playing) {
@@ -65,31 +68,8 @@ export function GamesView() {
       <div className="mb-2 flex items-center gap-3">
         <h1 className="text-2xl font-bold">Games</h1>
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-          {games.length} games · via YukiOS
+          {games.length} cloud games · via RaccoonGame
         </span>
-      </div>
-
-      {/* Type tabs */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {([
-          { id: "all", label: "All", count: games.length },
-          { id: "html5", label: "HTML5", count: games.filter((g) => g.type === "html5").length },
-          { id: "dos", label: "DOS", count: games.filter((g) => g.type === "dos").length },
-          { id: "emulator", label: "Emulators", count: games.filter((g) => g.type === "emulator").length },
-          { id: "flash", label: "Flash", count: games.filter((g) => g.type === "flash").length },
-        ] as const).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${activeTab === t.id ? "scale-105" : "opacity-60 hover:opacity-100"}`}
-            style={{
-              borderColor: activeTab === t.id ? "var(--accent)" : "var(--border)",
-              color: activeTab === t.id ? "var(--accent)" : "var(--text-muted)",
-            }}
-          >
-            {t.label} ({t.count})
-          </button>
-        ))}
       </div>
 
       {/* Search */}
@@ -141,38 +121,17 @@ export function GamesView() {
   );
 }
 
-function GameCard({ game, onPlay, onFav, isFav }: {
-  game: typeof YUKI_GAMES[0];
-  onPlay: () => void;
-  onFav: () => void;
-  isFav: boolean;
-}) {
+function GameCard({ game, onPlay, onFav, isFav }: { game: CloudGame; onPlay: () => void; onFav: () => void; isFav: boolean }) {
   const [imgError, setImgError] = useState(false);
-  const typeBadge: Record<string, string> = {
-    html5: "HTML5",
-    dos: "DOS",
-    emulator: "EMU",
-    flash: "Flash",
-  };
   return (
     <div className="group surface relative overflow-hidden rounded-xl border transition-all hover:scale-[1.03]" style={{ borderColor: "var(--border)" }}>
       <button onClick={onPlay} className="flex w-full flex-col items-center gap-2 p-2">
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg" style={{ background: "var(--surface2)" }}>
           {!imgError ? (
-            <img
-              src={game.cover}
-              alt={game.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-              onError={() => setImgError(true)}
-            />
+            <img src={game.cover} alt={game.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={() => setImgError(true)} />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-2xl">🎮</div>
           )}
-          <div className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px]">
-            {typeBadge[game.type] || game.type}
-          </div>
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
             <Play className="h-8 w-8 fill-current" style={{ color: "var(--accent)" }} />
           </div>
@@ -186,40 +145,28 @@ function GameCard({ game, onPlay, onFav, isFav }: {
   );
 }
 
-function GamePlayer({ game, onExit, onLaunch }: {
-  game: typeof YUKI_GAMES[0];
-  onExit: () => void;
-  onLaunch: () => void;
-}) {
+function GamePlayer({ game, onExit, onLaunch }: { game: CloudGame; onExit: () => void; onLaunch: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-2" style={{ borderColor: "var(--border)" }}>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-medium">{game.name}</span>
-          <span style={{ color: "var(--text-muted)" }}>· {game.type.toUpperCase()}</span>
-        </div>
+        <span className="text-sm font-medium">{game.name}</span>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onLaunch}
-            className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2"
-            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-          >
-            <ExternalLink className="h-3 w-3" /> Open in browser
+          <button onClick={onLaunch} className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>
+            <ExternalLink className="h-3 w-3" /> Launch
           </button>
-          <button onClick={onExit} className="rounded-lg border px-3 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>
-            Exit
-          </button>
+          <button onClick={onExit} className="rounded-lg border px-3 py-1 text-xs transition-colors hover:surface2" style={{ borderColor: "var(--border)" }}>Exit</button>
         </div>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8" style={{ background: "var(--bg)" }}>
         <img src={game.cover} alt={game.name} className="max-h-64 rounded-xl shadow-2xl" referrerPolicy="no-referrer" />
         <h2 className="text-xl font-bold">{game.name}</h2>
         <p className="max-w-lg text-center text-sm" style={{ color: "var(--text-muted)" }}>{game.desc}</p>
-        <button
-          onClick={onLaunch}
-          className="mt-4 flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all hover:scale-105"
-          style={{ background: "var(--accent)", color: "var(--bg)" }}
-        >
+        {game.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {game.tags.map((t) => <span key={t} className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border)" }}>{t}</span>)}
+          </div>
+        )}
+        <button onClick={onLaunch} className="mt-4 flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all hover:scale-105" style={{ background: "var(--accent)", color: "var(--bg)" }}>
           <Play className="h-5 w-5 fill-current" /> Play Now
         </button>
       </div>
