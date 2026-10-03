@@ -14,6 +14,7 @@ import { AnimeView } from "@/components/views/AnimeView";
 import { ExtensionsView } from "@/components/views/ExtensionsView";
 import { FormsView } from "@/components/views/FormsView";
 import { ToolsView } from "@/components/views/ToolsView";
+import { LinksView } from "@/components/views/LinksView";
 import { SetupView } from "@/components/views/SetupView";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
@@ -49,7 +50,7 @@ export default function Page() {
           {view === "browser" && <BrowserView />}
           {view === "anime" && <AnimeView />}
           {view === "extensions" && <ExtensionsView />}
-          {view === "forms" && <FormsView />}
+          {view === "links" && <LinksView />}
           {view === "tools" && <ToolsView />}
           {view === "setup" && <SetupView />}
         </main>

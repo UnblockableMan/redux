@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Home, Puzzle, ClipboardList, AlertTriangle, Wrench } from "lucide-react";
+import { Settings, Home, Puzzle, Link2, AlertTriangle, Wrench } from "lucide-react";
 import { useNav } from "@/store/nav";
 import { useSettings, type ToolbarPos } from "@/store/settings";
 import { withBase } from "@/lib/base";
@@ -26,7 +26,7 @@ export function ToolBar() {
     { id: "games", label: "Games", icon: BRAND_ICONS.games },
     { id: "browser", label: "Browser", icon: BRAND_ICONS.browser },
     { id: "anime", label: "Anime", icon: BRAND_ICONS.anime },
-    { id: "forms", label: "Forms", icon: ClipboardList },
+    { id: "links", label: "Links", icon: Link2 },
     { id: "tools", label: "Tools", icon: Wrench },
     { id: "extensions", label: "Extensions", icon: Puzzle },
   ];
