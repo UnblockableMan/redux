@@ -48,7 +48,7 @@ const scramjet = new ScramjetServiceWorker({
 
 // SW version — bump this on every sw.js change so browsers pick up the
 // new version immediately (the install event fires when the file changes).
-const SW_VERSION = "redux-v10.7-fixes";
+const SW_VERSION = "redux-v10.9-fast-skip-origin";
 
 self.addEventListener('install', (event) => {
     console.log(`[sw] installing ${SW_VERSION}`);
@@ -222,6 +222,19 @@ async function setTransportForUrl(wispUrl) {
 }
 
 self.addEventListener("fetch", (event) => {
+    // SKIP same-origin requests — don't intercept _next/static/, /api/,
+    // logo.svg, sw.js, bareworker.js, etc. Only proxy requests that go
+    // through the scramjet/ prefix. This is a MASSIVE speed win because
+    // the old code ran scramjet.loadConfig() + scramjet.route() on
+    // EVERY request, including static assets.
+    const url = new URL(event.request.url);
+    if (url.origin === self.location.origin) {
+        // Same-origin — let the browser handle it normally (no SW intercept).
+        // Only exception: requests to /scramjet/ which ARE the proxy URLs.
+        if (!url.pathname.includes("/scramjet/")) {
+            return; // Skip — don't call event.respondWith()
+        }
+    }
     event.respondWith((async () => {
         if (isAdBlocked(event.request.url)) {
             return new Response(new ArrayBuffer(0), { status: 204 });
