@@ -1,23 +1,9 @@
 :81 {
-	@transform_port_query {
-		query XTransformPort=*
-	}
+	root * .
+	encode zstd gzip
 
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+	@private path /.env* /.git/* /.github/* /.gitignore /Caddyfile /db/* /download/* /node_modules/* /upload/*
+	respond @private 404
 
-	handle {
-		reverse_proxy localhost:3000 {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+	file_server
 }

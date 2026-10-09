@@ -1,15 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 100" width="280" height="100">
-  <!-- redux logo — Roman numeral X (10) + 'redux' wordmark, opium-clear inspired -->
-  <defs>
-    <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#9a8cf5"/>
-    </linearGradient>
-  </defs>
-  <!-- Roman X (10) — large italic serif on the left -->
-  <text x="55" y="76" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="82" font-weight="400" fill="url(#rg)" text-anchor="middle" letter-spacing="-2">X</text>
-  <!-- 'redux' wordmark on the right -->
-  <text x="115" y="68" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="42" font-weight="400" fill="#ffffff" letter-spacing="-0.5">redux</text>
-  <!-- Small accent dot after 'redux' -->
-  <circle cx="262" cy="60" r="4" fill="#9a8cf5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">canc3r</title>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#0f0f0f" stroke="#fff" stroke-opacity=".2" stroke-width="2"/>
+  <path d="M41.8 23.5a15 15 0 1 0 0 17" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="5"/>
+  <path d="M42 20v10H32" fill="none" stroke="#a3a3a3" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <text x="32" y="50" fill="#fff" font-family="Arial,sans-serif" font-size="13" font-weight="700" text-anchor="middle">3</text>
 </svg>
