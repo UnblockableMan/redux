@@ -16,7 +16,9 @@ Then open <http://localhost:8000>. This is for local development only. The app u
 
 This is a static site. The included `Caddyfile` serves the repository root on port `81`; run Caddy from the repository root. It denies access to local configuration, database, and user-data paths.
 
-Cloudflare Pages deploys automatically on pushes to `main` through `.github/workflows/cloudflare-pages.yml`. Create a Pages project once (default name `redux`, production branch `main`), then set the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. The token needs permission to create and deploy Pages projects. Set the `CLOUDFLARE_PAGES_PROJECT` repository variable to use a different project name. You can also run `python3 scripts/build_cloudflare_pages.py` followed by `npx wrangler@4 pages deploy dist --project-name=redux`.
+The repository includes deployment configuration for [Cloudflare Pages](.github/workflows/cloudflare-pages.yml), [Render](render.yaml), [Netlify](netlify.toml), and [Vercel](vercel.json). Connect the repository to your chosen provider and use the repository root as the project root; each config builds the site into `dist/`.
+
+Cloudflare Pages deploys automatically on pushes to `main` through its GitHub Actions workflow. Create a Pages project once (default name `redux`, production branch `main`), then set the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. The token needs permission to create and deploy Pages projects. Set the `CLOUDFLARE_PAGES_PROJECT` repository variable to use a different project name. You can also run `python3 scripts/build_cloudflare_pages.py` followed by `npx wrangler@4 pages deploy dist --project-name=redux`.
 
 The Pages build omits files larger than Cloudflare's 25 MiB per-file limit; these oversized game assets must be hosted separately (for example, in R2) to be available on the Pages deployment. The current source tree contains six such assets. The build also excludes local configuration, dependencies, and private data directories.
 
