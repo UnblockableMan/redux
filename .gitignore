@@ -30,17 +30,5 @@ pnpm-debug.log*
 KEYS.json
 KEYS.json*
 
-./cherri-umami-worker
-
-/cherri-umami-worker
-cherri-umami-worker/
-
-./cherri-cometchat-worker
-
-/cherri-cometchat-worker
-cherri-cometchat-worker/
-
 /out/
 /_site/
-
-# Static site deployment output

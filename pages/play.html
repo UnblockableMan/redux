@@ -196,7 +196,7 @@
     </div>
 
     <div id="gameOverlay" class="">
-        <div class="cherri-info">
+        <div class="canc3r-info">
             <span id="currentTime">Loading time...</span>
             <span class="divider"></span>
             <span id="temperature">Loading temp...</span>
@@ -321,7 +321,7 @@
             gameframe.focus();
         }
 
-        const useOverlay = localStorage.getItem("cherri_useOverlay") ?? "yes"
+        const useOverlay = localStorage.getItem("canc3r_useOverlay") ?? "yes"
 
         if (useOverlay === "yes") {
             initOverlay()
@@ -412,7 +412,7 @@
 
                     try {
                         const handle = await window.showSaveFilePicker({
-                            suggestedName: "Cherri_Game_Recording" + Date.now() + ".mp4",
+                            suggestedName: "canc3r_Game_Recording" + Date.now() + ".mp4",
                             types: [{
                                 description: "Video Files",
                                 accept: { "video/mp4": [".mp4"] }

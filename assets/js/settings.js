@@ -2,16 +2,16 @@ const sections = document.querySelectorAll(".settings-section");
 const buttons = document.querySelectorAll(".settings-side button");
 const wispServers = document.querySelectorAll(".wisp-servers button")
 const currentWisp = document.getElementById("currentWisp");
-const savedWisp = localStorage.getItem("cherri_wispUrl") ?? "wss://wisp.rhw.one/";
-const savedCloak = localStorage.getItem("cherri_cloak") ?? "";
-const savedCloakIcon = localStorage.getItem("cherri_cloakIcon") ?? "";
-const savedCloakTitle = localStorage.getItem("cherri_cloakTitle") ?? "";
+const savedWisp = localStorage.getItem("canc3r_wispUrl") ?? "wss://wisp.rhw.one/";
+const savedCloak = localStorage.getItem("canc3r_cloak") ?? "";
+const savedCloakIcon = localStorage.getItem("canc3r_cloakIcon") ?? "";
+const savedCloakTitle = localStorage.getItem("canc3r_cloakTitle") ?? "";
 
 const tabIcon = document.getElementById("tabIcon");
 const tabTitle = document.querySelector('title');
 
 const themeLink = document.getElementById('css-theme-link');
-const savedTheme = localStorage.getItem('cherri_theme') ?? 'default';
+const savedTheme = localStorage.getItem('canc3r_theme') ?? 'default';
 
 if (savedCloakIcon || savedCloakTitle) {
     tabIcon.href = savedCloakIcon || tabIcon.href;
@@ -20,21 +20,21 @@ if (savedCloakIcon || savedCloakTitle) {
 
 function setTabTitle(v) {
     document.title = v;
-    localStorage.setItem("cherri_cloakTitle", v);
+    localStorage.setItem("canc3r_cloakTitle", v);
 }
 
 function setTabIcon(v) {
     tabIcon.href = `https://www.google.com/s2/favicons?domain=${v}&sz=256`;
-    localStorage.setItem("cherri_cloakIcon", tabIcon.href);
+    localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
 }
 
 function applyTheme(t) {
   if (t !== "default") {
     themeLink.href = `/assets/css/themes/${t}.css`;
-    localStorage.setItem("cherri_theme", t);
+    localStorage.setItem("canc3r_theme", t);
   } else {
     themeLink.href = `/assets/css/colors.css`;
-    localStorage.setItem("cherri_theme", "default");
+    localStorage.setItem("canc3r_theme", "default");
   }
 }
 
@@ -65,7 +65,7 @@ function settingsNav(section) {
 }
 
 function setWispServer(url) {
-    localStorage.setItem("cherri_wispUrl", url);
+    localStorage.setItem("canc3r_wispUrl", url);
     currentWisp.textContent = url;
 }
 
@@ -74,56 +74,56 @@ function cloakMe(o) {
         case "gclassroom":
             tabIcon.href = "/assets/img/cloaks/gclassroom.png";
             document.title = "Google Classroom";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "gdrive":
             tabIcon.href = "/assets/img/cloaks/gdrive.png";
             document.title = "My Drive - Google Drive";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "google":
             tabIcon.href = "/assets/img/cloaks/google.png";
             document.title = "Google";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "edpuzzle":
             tabIcon.href = "/assets/img/cloaks/edpuzzle.png";
             document.title = "Edpuzzle";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "iready":
             tabIcon.href = "/assets/img/cloaks/iready.png";
             document.title = "i-Ready Login";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "gmail":
             tabIcon.href = "/assets/img/cloaks/gmail.png";
             document.title = "Gmail";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "blooket":
             tabIcon.href = "/assets/img/cloaks/blooket.png";
             document.title = "Blooket - Fun Learning Games for Students";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "kahoot":
             tabIcon.href = "/assets/img/cloaks/kahoot.png";
             document.title = "Kahoot! | Learning Games | Make Learning Awesome!";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
         case "none":
             tabIcon.href = "/image.png";
             document.title = "canc3r";
-            localStorage.setItem("cherri_cloakIcon", tabIcon.href);
-            localStorage.setItem("cherri_cloakTitle", document.title);
+            localStorage.setItem("canc3r_cloakIcon", tabIcon.href);
+            localStorage.setItem("canc3r_cloakTitle", document.title);
             break;
     }
 }

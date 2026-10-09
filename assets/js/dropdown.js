@@ -1,11 +1,11 @@
 // thanks to https://waves.lat for custom dropdowns || https://gitlab.com/waveslab/waves
 const appSettings = {
-  backend: localStorage.getItem("cherri_backend") || "Scramjet",
-  searchEngine: localStorage.getItem("cherri_searchEngine") || "DuckDuckGo",
+  backend: localStorage.getItem("canc3r_backend") || "Scramjet",
+  searchEngine: localStorage.getItem("canc3r_searchEngine") || "DuckDuckGo",
   decoy: localStorage.getItem("decoy") || "None",
-  wisp: localStorage.getItem("cherri_wispUrlSelected") || "rhw",
-  theme: localStorage.getItem("cherri_theme") || "default",
-  store: localStorage.getItem("cherri_gameStore") || "Classplay",
+  wisp: localStorage.getItem("canc3r_wispUrlSelected") || "rhw",
+  theme: localStorage.getItem("canc3r_theme") || "default",
+  store: localStorage.getItem("canc3r_gameStore") || "Classplay",
 };
 
 const searchEngineSelector = document.querySelector(".search-engine-selector");
@@ -165,6 +165,10 @@ const allThemeOptions = [
   "dunes",
   "lavendar",
   "midnight",
+  "arctic",
+  "sunset",
+  "cyberpunk",
+  "sage",
   "coral",
   "golden",
   "lime",
@@ -265,7 +269,7 @@ createSelector(
   searchEngineOptions,
   allSearchEngineOptions,
   appSettings.searchEngine,
-  "cherri_searchEngine",
+  "canc3r_searchEngine",
   null,
   "Successfully updated Search Engine!"
 );
@@ -287,7 +291,7 @@ createSelector(
   backendOptions,
   allBackendOptions,
   appSettings.backend,
-  "cherri_backend",
+  "canc3r_backend",
   "backendUpdated",
   "Successfully updated backend!"
 );
@@ -298,7 +302,7 @@ createSelector(
   themeOptions,
   allThemeOptions,
   appSettings.theme,
-  "cherri_theme",
+  "canc3r_theme",
   "themeUpdated",
   "Successfully updated theme! Refresh to see background change."
 );
@@ -309,7 +313,7 @@ createSelector(
   storeOptions,
   allStoreOptions,
   appSettings.store,
-  "cherri_gameStore",
+  "canc3r_gameStore",
   "storeUpdated",
   "Successfully updated game library!"
 );
@@ -328,7 +332,7 @@ document.addEventListener("themeUpdated", (e) => {
 document.addEventListener("wispUpdated", (e) => {
   const wisp = wispPresets[e.detail];
 
-  localStorage.setItem("cherri_wispUrl", wisp.url);
+  localStorage.setItem("canc3r_wispUrl", wisp.url);
   console.log(wisp.url);
 });
 window.addEventListener("load", () => {

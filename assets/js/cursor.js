@@ -1,4 +1,4 @@
-const useCursor = localStorage.getItem("cherri_customCursor") ?? "yes";
+const useCursor = localStorage.getItem("canc3r_customCursor") ?? "no";
 
 let animationId = null;
 let mouseMoveHandler = null;
@@ -6,6 +6,8 @@ let messageHandler = null;
 let hideInterval = null;
 
 function cursor() {
+  if (document.getElementById("cursor-thank-you-zxs")) return;
+
   const cursor = document.createElement("div");
   cursor.style.position = "fixed";
   cursor.style.top = "0";
@@ -107,7 +109,7 @@ function removeCursor() {
   }
   const cursorEl = document.getElementById("cursor-thank-you-zxs");
   const cursorStyle = document.getElementById("cursor-style-zxs");
-  if (cursorEl) cursorEl.style.opacity = "0";
+  if (cursorEl) cursorEl.remove();
   if (cursorStyle) cursorStyle.remove();
 }
 

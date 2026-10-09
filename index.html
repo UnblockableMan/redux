@@ -16,6 +16,7 @@
     <script src="/homework/math.all.js"></script>
     <link rel="stylesheet" href="/styles/index.css">
     <link rel="stylesheet" href="/assets/css/colors.css" id="css-theme-link">
+    <link rel="stylesheet" href="/assets/css/effects.css">
     <link rel="stylesheet" href="/fa/css/all.css">
     <link rel="stylesheet" href="/fa/css/all.min.css">
     <link rel="stylesheet" href="/fa/css/solid.css">
@@ -56,7 +57,7 @@
                 <a onclick="navTo('home?launch=1')" style="margin-top: 7.5px; margin-left: 10px;" href="#"
                     data-page="home">
                     <div class="hcontainer">
-                        <img src="/image.png" style="height: 24px; margin-top: -1px; margin-right: -0px;"
+                        <img src="/logo.svg" style="height: 24px; margin-top: -1px; margin-right: -0px;"
                             alt="">
                     </div>
                 </a>
@@ -229,11 +230,32 @@
                     </label>
                     <br>
                     <br>
+                    <h2>Aurora</h2>
+                    <p>Enable a soft, animated aurora glow in the background.</p>
+                    <label class="switch">
+                        <input id="aurora-toggle" onchange="updateAurora()" type="checkbox">
+                        <div class="slider">
+                            <div class="circle">
+                                <svg class="cross" viewBox="0 0 365.696 365.696" width="6" height="6"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path fill="currentColor"
+                                        d="M243.188 182.86 356.32 69.726c12.5-12.5 12.5-32.766 0-45.247L341.238 9.398c-12.504-12.503-32.77-12.503-45.25 0L182.86 122.528 69.727 9.374c-12.5-12.5-32.766-12.5-45.247 0L9.375 24.457c-12.5 12.504-12.5 32.77 0 45.25l113.152 113.152L9.398 295.99c-12.503 12.503-12.503 32.769 0 45.25L24.48 356.32c12.5 12.5 32.766 12.5 45.247 0l113.132-113.132L295.99 356.32c12.503 12.5 32.769 12.5 45.25 0l15.081-15.082c12.5-12.504 12.5-32.77 0-45.25z" />
+                                </svg>
+                                <svg class="checkmark" viewBox="0 0 24 24" width="10" height="10"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path fill="currentColor"
+                                        d="M9.707 19.121a.997.997 0 0 1-1.414 0l-5.646-5.647a1.5 1.5 0 0 1 0-2.121l.707-.707a1.5 1.5 0 0 1 2.121 0L9 14.171l9.525-9.525a1.5 1.5 0 0 1 2.121 0l.707.707a1.5 1.5 0 0 1 0 2.121z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </label>
+                    <br>
+                    <br>
                     <h2>Custom Cursor</h2>
-                    <p>Enable or disable the ZXS cursor, which could also improve performance.</p>
+                    <p>Enable the custom cursor. The normal system cursor is used by default.</p>
                     <!-- From Uiverse.io by Galahhad -->
                     <label class="switch">
-                        <input id="cursor-toggle" checked="" onchange="updateCur()" type="checkbox">
+                        <input id="cursor-toggle" onchange="updateCur()" type="checkbox">
                         <div class="slider">
                             <div class="circle">
                                 <svg class="cross" xml:space="preserve" style="enable-background:new 0 0 512 512"
@@ -512,9 +534,7 @@
     <!--<div id="particles-container"></div>-->
     <div id="vanta-fog-container"></div>
 
-    <div id="cursor-thank-you-zxs"
-        style="position: fixed; top: 0px; left: 0px; width: 16px; height: 16px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 70%, white 30%); pointer-events: none; z-index: 9999; transform: translate(748px, 592px); transition: width 0.15s, height 0.15s, opacity 0.15s; mix-blend-mode: difference; opacity: 0;">
-    </div>
+    <div id="aurora-effect" aria-hidden="true"></div>
 
     <div class="apps-wrapper settings-hidden">
         <input onkeyup="searchApps(this.value)" type="text" style="font-family: Arial;"
@@ -582,11 +602,11 @@
     <button id="reset-theme" onclick="resetTheme()">CLICK HERE TO RESET YOUR THEME!</button>
 
     <!-- site version -->
-    <cherriattr version="s1.1.1"></cherriattr>
+    <canc3rattr version="s1.1.1"></canc3rattr>
 
     <script src="/assets/js/dropdown.js"></script>
     <script>
-        const pjsOn = localStorage.getItem("cherri_particlesOn") ?? "yes"
+        const pjsOn = localStorage.getItem("canc3r_particlesOn") ?? "yes"
 
         if (pjsOn === "yes") {
             particlesJS.load("particles-container", "/assets/json/config/particles.json", () => {
@@ -597,7 +617,7 @@
         }
     </script>
     <script>
-        const selectedStore = localStorage.getItem("cherri_gameStore") ?? "Classplay"
+        const selectedStore = localStorage.getItem("canc3r_gameStore") ?? "Classplay"
 
         let res
         let data
@@ -750,7 +770,7 @@
                 if (!document.body.contains(contentFrame)) {
                     document.body.appendChild(contentFrame);
                 }
-                const overlayOn = localStorage.getItem("cherri_useOverlay") ?? "yes"
+                const overlayOn = localStorage.getItem("canc3r_useOverlay") ?? "yes"
                 if (overlayOn === "yes" && l.includes("/stores/")) {
                     document.querySelector("nav").style.opacity = 0
                     setTimeout(() => {
@@ -1006,7 +1026,7 @@
     <script defer>
         const pjstoggle = document.getElementById("pjs-toggle")
         const pcont = document.getElementById("vanta-fog-container")
-        const pjsIsOn = localStorage.getItem("cherri_particlesOn") ?? "yes"
+        const pjsIsOn = localStorage.getItem("canc3r_particlesOn") ?? "yes"
 
         function updatePJS() {
             if (pjstoggle.checked) {
@@ -1014,7 +1034,7 @@
                 const newpjs = document.createElement("div")
                 newpjs.setAttribute("id", "vanta-fog-container")
                 document.body.append(newpjs)
-                localStorage.setItem("cherri_particlesOn", "yes")
+                localStorage.setItem("canc3r_particlesOn", "yes")
                 VANTA.FOG({
                     el: "#vanta-fog-container",
                     mouseControls: true,
@@ -1034,7 +1054,7 @@
                 const newpcont = document.getElementById("vanta-fog-container")
                 newpcont.remove()
                 console.log("unchecked")
-                localStorage.setItem("cherri_particlesOn", "no")
+                localStorage.setItem("canc3r_particlesOn", "no")
                 showToast("success", "Vanta is now off!", "fas fa-check-circle")
             }
         }
@@ -1047,16 +1067,16 @@
     </script>
     <script defer>
         const overlayToggle = document.getElementById("overlay-toggle")
-        const overlayIsOn = localStorage.getItem("cherri_useOverlay") ?? "yes"
+        const overlayIsOn = localStorage.getItem("canc3r_useOverlay") ?? "yes"
 
         function updateOverlaySettings() {
             if (overlayToggle.checked) {
                 console.log("checked")
                 showToast("success", "Game overlay is now on!", "fas fa-check-circle")
-                localStorage.setItem("cherri_useOverlay", "yes")
+                localStorage.setItem("canc3r_useOverlay", "yes")
             } else {
                 console.log("unchecked")
-                localStorage.setItem("cherri_useOverlay", "no")
+                localStorage.setItem("canc3r_useOverlay", "no")
                 showToast("success", "Game overlay is now off!", "fas fa-check-circle")
             }
         }
@@ -1068,22 +1088,22 @@
         }
     </script>
     <script defer>
-        const cherriAttr = document.querySelector("cherriattr")
-        const siteVersion = cherriAttr.getAttribute("version")
-        const savedVer = localStorage.getItem("cherri_siteVersion") ?? ""
+        const canc3rAttr = document.querySelector("canc3rattr")
+        const siteVersion = canc3rAttr.getAttribute("version")
+        const savedVer = localStorage.getItem("canc3r_siteVersion") ?? ""
 
         window.addEventListener("DOMContentLoaded", () => {
             if (savedVer === null || !savedVer) {
                 showToast("success", "Welcome to canc3r!", "fas fa-hand-wave")
-                localStorage.setItem("cherri_siteVersion", siteVersion)
+                localStorage.setItem("canc3r_siteVersion", siteVersion)
             } else if (savedVer !== siteVersion) {
                 showToast("success", "canc3r was updated! Check settings for more info.", "fas fa-check-circle")
-                localStorage.setItem("cherri_siteVersion", siteVersion)
+                localStorage.setItem("canc3r_siteVersion", siteVersion)
             }
         })
 
         function resetTheme() {
-            localStorage.setItem("cherri_theme", "default")
+            localStorage.setItem("canc3r_theme", "default")
             window.location.reload()
         }
 
@@ -1103,16 +1123,16 @@
         }
 
         const abToggle = document.getElementById("cloak-toggle")
-        const abOn = localStorage.getItem("cherri_autoAB") ?? "no"
+        const abOn = localStorage.getItem("canc3r_autoAB") ?? "no"
 
         function updateABSettings() {
             if (abToggle.checked) {
                 console.log("checked")
                 showToast("success", "Auto cloaking is now on!", "fas fa-check-circle")
-                localStorage.setItem("cherri_autoAB", "yes")
+                localStorage.setItem("canc3r_autoAB", "yes")
             } else {
                 console.log("unchecked")
-                localStorage.setItem("cherri_autoAB", "no")
+                localStorage.setItem("canc3r_autoAB", "no")
                 showToast("success", "Auto cloaking is now off!", "fas fa-check-circle")
             }
         }
@@ -1123,11 +1143,11 @@
             abToggle.checked = false
         }
 
-        if (localStorage.getItem("cherri_autoAB") === "yes") {
+        if (localStorage.getItem("canc3r_autoAB") === "yes") {
             openAB()
         }
 
-        const confirmLeaveOn = localStorage.getItem("cherri_confirmLeave") ?? "no"
+        const confirmLeaveOn = localStorage.getItem("canc3r_confirmLeave") ?? "no"
         const confirmLeaveToggle = document.getElementById("confirm-leave-toggle")
 
         if (confirmLeaveOn === "yes") {
@@ -1140,22 +1160,22 @@
             if (confirmLeaveToggle.checked) {
                 console.log("checked")
                 showToast("success", "Confirm leave is now on!", "fas fa-check-circle")
-                localStorage.setItem("cherri_confirmLeave", "yes")
+                localStorage.setItem("canc3r_confirmLeave", "yes")
             } else {
                 console.log("unchecked")
-                localStorage.setItem("cherri_confirmLeave", "no")
+                localStorage.setItem("canc3r_confirmLeave", "no")
                 showToast("success", "Confirm leave is now off!", "fas fa-check-circle")
             }
         }
 
         window.addEventListener("beforeunload", function (e) {
-            if (localStorage.getItem("cherri_confirmLeave") === "yes") {
+            if (localStorage.getItem("canc3r_confirmLeave") === "yes") {
                 e.preventDefault()
                 e.returnValue = ""
             }
         })
 
-        const cursorOn = localStorage.getItem("cherri_customCursor") ?? "yes"
+        const cursorOn = localStorage.getItem("canc3r_customCursor") ?? "no"
         const cursorToggle = document.getElementById("cursor-toggle")
 
         if (cursorOn === "yes") {
@@ -1168,23 +1188,18 @@
             if (cursorToggle.checked) {
                 console.log("checked")
                 showToast("success", "Custom cursor is now on!", "fas fa-check-circle")
-                localStorage.setItem("cherri_customCursor", "yes")
+                localStorage.setItem("canc3r_customCursor", "yes")
                 cursor()
             } else {
                 console.log("unchecked")
-                document.querySelectorAll("#cursor-thank-you-zxs").forEach(el => el.remove())
-                document.querySelectorAll("#cursor-style-zxs").forEach(el => el.remove())
-                if (animationId) cancelAnimationFrame(animationId)
-                if (mouseMoveHandler) window.removeEventListener("mousemove", mouseMoveHandler)
-                if (messageHandler) window.removeEventListener("message", messageHandler)
-                if (hideInterval) clearInterval(hideInterval)
-                localStorage.setItem("cherri_customCursor", "no")
+                removeCursor()
+                localStorage.setItem("canc3r_customCursor", "no")
                 showToast("success", "Custom cursor is now off!", "fas fa-check-circle")
             }
         }
 
         window.addEventListener("beforeunload", function (e) {
-            if (localStorage.getItem("cherri_confirmLeave") === "yes") {
+            if (localStorage.getItem("canc3r_confirmLeave") === "yes") {
                 e.preventDefault()
                 e.returnValue = ""
             }
@@ -1211,7 +1226,7 @@
             return parseInt(hex.replace("#", ""), 16)
         }
 
-        const useFog = localStorage.getItem("cherri_particlesOn") ?? "yes"
+        const useFog = localStorage.getItem("canc3r_particlesOn") ?? "yes"
         if (useFog === "yes") {
             VANTA.FOG({
                 el: "#vanta-fog-container",
@@ -1258,10 +1273,22 @@
             }
             console.log("Wisp checks passed (4/4)")
 
-            localStorage.setItem("cherri_wispUrl", i)
+            localStorage.setItem("canc3r_wispUrl", i)
             showToast("success", "Wisp server updated! Do<b> ⌘⇧R</b>  to see changes.", "fas fa-check-circle")
             console.log("Wisp updated", i)
         }
+    </script>
+    <script defer>
+        const auroraToggle = document.getElementById("aurora-toggle")
 
+        function updateAurora() {
+            const enabled = auroraToggle.checked
+            document.body.classList.toggle("aurora-enabled", enabled)
+            localStorage.setItem("canc3r_auroraOn", enabled ? "yes" : "no")
+            showToast("success", `Aurora is now ${enabled ? "on" : "off"}!`, "fas fa-check-circle")
+        }
+
+        auroraToggle.checked = localStorage.getItem("canc3r_auroraOn") === "yes"
+        document.body.classList.toggle("aurora-enabled", auroraToggle.checked)
     </script>
 </body>
