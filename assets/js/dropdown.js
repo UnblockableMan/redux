@@ -250,7 +250,7 @@ function applyDecoy(s) {
         " was selected"
     );
     document.title = "canc3r";
-    favicon.href = "/logo.svg";
+    favicon.href = "/image.png";
     return;
   } else {
     document.title = selected.title;

@@ -57,7 +57,7 @@ function newTab() {
   tabElement.classList.add("tab", "hcontainer");
   tabElement.dataset.tabId = nTab.id;
   tabElement.innerHTML = `
-        <img src="/logo.svg" id="fav" data-fav-id="${nTab.id}" width="24" alt="">
+        <img src="/image.png" id="fav" data-fav-id="${nTab.id}" width="24" alt="">
             <span>
                 New Tab
             </span>
